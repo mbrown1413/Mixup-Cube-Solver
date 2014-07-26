@@ -58,13 +58,7 @@ def _tokenize_turns(turns):
 # ctypes Definitions
 #
 
-try:
-    _libcube = ctypes.cdll.LoadLibrary(_LIBMIXUPCUBE_SO)
-except OSError as e:
-    if "No such file or directory" in e.message:
-        raise OSError('Can\'t find libmixupcube at "{}". Did you forget to '
-                      'compile it?'.format(_LIBMIXUPCUBE_SO))
-    raise
+_libcube = ctypes.cdll.LoadLibrary(_LIBMIXUPCUBE_SO)
 
 class _CubieStruct(ctypes.Structure):
     _fields_ = [("id", ctypes.c_byte),

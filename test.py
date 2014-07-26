@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-import cube
+import mixupcube
 
-c = cube.MixupCube()
+c = mixupcube.MixupCube()
 print(c)
 c.turn("R")
 print(c.is_cube_shape())

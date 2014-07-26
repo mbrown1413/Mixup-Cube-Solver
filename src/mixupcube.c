@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cube.h"
+#include "mixupcube.h"
 
 // Private prototypes
 static void Cubie_corner_rot(Cubie* c, int amount);

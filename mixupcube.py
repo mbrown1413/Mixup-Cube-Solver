@@ -1,29 +1,26 @@
-#!/usr/bin/python3
 
+from math import sqrt
 import ctypes
+
+from OpenGL.GL import *
+from OpenGL.GLUT import *
+
 _LIBMIXUPCUBE_SO = "./libmixupcube.so"
 
+_TURN_ORDER = [
+    "U" , "D" , "F" , "B" , "L" , "R",
+    "U2", "D2", "F2", "B2", "L2", "R2",
+    "U'", "D'", "F'", "B'", "L'", "R'",
+    "M" , "E" , "S",
+    "M2", "E2", "S2",
+    "M3", "E3", "S3",
+    "M4", "E4", "S4",
+    "M5", "E5", "S5",
+    "M6", "E6", "S6",
+    "M'", "E'", "S'",
+]
 # Maps turn string to turn ID integer
-_TURN_IDS = {
-    "U": 0,
-    "D": 1,
-    "F": 2,
-    "B": 3,
-    "L": 4,
-    "R": 5,
-    "U'": 6,
-    "D'": 7,
-    "F'": 8,
-    "B'": 9,
-    "L'": 10,
-    "R'": 11,
-    "U2": 12,
-    "D2": 13,
-    "F2": 14,
-    "B2": 15,
-    "L2": 16,
-    "R2": 17,
-}
+_TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
 
 #
 # Helper Functions
@@ -117,11 +114,46 @@ class MixupCube():
     def _turn_once(self, turn):
         """Performs a single turn given its turn ID."""
         assert isinstance(turn, int)
+        assert turn >= 0 and turn < 39
         _libcube.Cube_turn(self._cube, turn)
 
     def draw(self):
-        for cubie in self._cube.contents.cubies:
+        """
+        Draws cube centered at origin.
+
+        TODO: What are the cube's dimensions and orientation?
+        """
+        for slot, cubie in enumerate(self._cube.contents.cubies):
+            glPushMatrix()
+            self._cubie_slot_transform(slot)
             self._draw_cubie(cubie)
+            glPopMatrix()
 
     def _draw_cubie(self, cubie):
-        pass  #TODO
+        #TODO
+        import random
+        glColor3f(random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1))
+        glutSolidCube(sqrt(2) / 2)
+
+    _CUBIE_COORDINATES = (  # cubie slot index -> (x, y, z)
+        # Corners
+        (-1, 1, 1), (-1, 1, -1), (1, 1, -1), (1, 1, 1),
+        (-1, -1, 1), (-1, -1, -1), (1, -1, -1), (1, -1, 1),
+        # Edges
+        (0, 1, 1), (-1, 1, 0), (0, 1, -1), (1, 1, 0),
+        (-1, 0, 1), (-1, 0, -1), (1, 0, -1), (1, 0, 1),
+        (0, -1, 1), (-1, -1, 0), (0, -1, -1), (1, -1, 0),
+        # Faces
+        (0, 1, 0), (0, 0, 1), (-1, 0, 0),
+        (0, 0, -1), (1, 0, 0), (0, -1, 0),
+    )
+    def _cubie_slot_transform(self, cubie_slot):
+
+        #TODO: Rotation
+
+        # d is the distance in one axis between the center of an edge slot and
+        # the center of a corner slot.
+        d = sqrt(2) / 2
+
+        x, y, z = MixupCube._CUBIE_COORDINATES[cubie_slot]
+        glTranslate(x*d, y*d, z*d)

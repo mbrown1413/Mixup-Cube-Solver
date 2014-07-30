@@ -95,8 +95,7 @@
  * freely. If the edge is in a face slot, we'll define a unique way to get it
  * back into an edge slot, then you can apply the previous rule like normal. If
  * the cubie is in the U, D, F or B face slot, make the move M. If the cubie is
- * on the L or R face, make the move E. If you can't remember the slice move
- * notation, see "README.md".
+ * in the L or R face slot, make the move E.
  *
  */
 typedef struct {

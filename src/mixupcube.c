@@ -4,15 +4,9 @@
 
 #include "mixupcube.h"
 
-// Private prototypes
-static void Cubie_corner_rot(Cubie* c, int amount);
-static void Cubie_edge_rot(Cubie* c, int amount);
+// Private Prototypes
 static bool Cubie_is_face(const Cubie* c);
-static void Cube_cycle_4(Cube* cube, enum CubieId c0, enum CubieId c1,
-                                     enum CubieId c2, enum CubieId c3);
-//static void Cube_cycle_8(Cube* cube,
-//    enum CubieId c0, enum CubieId c1, enum CubieId c2, enum CubieId c3,
-//    enum CubieId c4, enum CubieId c5, enum CubieId c6, enum CubieId c7);
+
 
 static const Cube solved_cube = {{
     { 0, 0}, { 1, 0}, { 2, 0}, { 3, 0}, { 4, 0}, { 5, 0}, {6, 0}, {7, 0},
@@ -22,47 +16,9 @@ static const Cube solved_cube = {{
 }};
 
 
-static void Cubie_corner_rot(Cubie* c, int amount) {
-    c->orient = (c->orient + amount) % 3;
-}
-
-static void Cubie_edge_rot(Cubie* c, int amount) {
-    c->orient = (c->orient + amount) % 4;
-}
-
 static bool Cubie_is_face(const Cubie* c) {
     return c->id >= 20;
 }
-
-/**
- * c0 replaces c1, which replaces c2, which replaces c3, which replaces c0.
- */
-static void Cube_cycle_4(Cube* cube, enum CubieId c0, enum CubieId c1,
-                                     enum CubieId c2, enum CubieId c3)
-{
-    Cubie tmp = cube->cubies[c3];
-    cube->cubies[c3] = cube->cubies[c2];
-    cube->cubies[c2] = cube->cubies[c1];
-    cube->cubies[c1] = cube->cubies[c0];
-    cube->cubies[c0] = tmp;
-}
-
-/*
-static void Cube_cycle_8(Cube* cube,
-    enum CubieId c0, enum CubieId c1, enum CubieId c2, enum CubieId c3,
-    enum CubieId c4, enum CubieId c5, enum CubieId c6, enum CubieId c7)
-{
-    Cubie tmp = cube->cubies[c7];
-    cube->cubies[c7] = cube->cubies[c6];
-    cube->cubies[c6] = cube->cubies[c5];
-    cube->cubies[c5] = cube->cubies[c4];
-    cube->cubies[c4] = cube->cubies[c3];
-    cube->cubies[c3] = cube->cubies[c2];
-    cube->cubies[c2] = cube->cubies[c1];
-    cube->cubies[c1] = cube->cubies[c0];
-    cube->cubies[c0] = tmp;
-}
-*/
 
 Cube* Cube_new_solved() {
     Cube* c = (Cube*) malloc(sizeof(Cube));
@@ -74,49 +30,7 @@ void Cube_copy(Cube* dst, const Cube* src) {
     memcpy((void*) dst, (void*) src, sizeof(Cube));
 }
 
-void Cube_turn(Cube* cube, int turn) {
-    #define EDGE_ROT(cubie, amount) \
-        Cubie_edge_rot(&cube->cubies[(cubie)], (amount))
-    #define CORNER_ROT(cubie, amount) \
-        Cubie_corner_rot(&cube->cubies[(cubie)], (amount))
-
-    switch(turn) {
-        case 0:  // U
-            //TODO
-        break;
-        case 1:  // D
-            //TODO
-        break;
-        case 2:  // F
-            //TODO
-        break;
-        case 3:  // B
-            //TODO
-        break;
-        case 4:  // L
-            //CORNER_ROT(CUBIE_UFL, 2);
-            //CORNER_ROT(CUBIE_UBL, );
-            //CORNER_ROT(CUBIE_DBL, );
-            //CORNER_ROT(CUBIE_DFL, );
-        break;
-        case 5:  // R
-            CORNER_ROT(CUBIE_UFR, 1);
-            CORNER_ROT(CUBIE_UBR, 2);
-            CORNER_ROT(CUBIE_DFR, 2);
-            CORNER_ROT(CUBIE_DBR, 1);
-            EDGE_ROT(CUBIE_UR, 2);
-            EDGE_ROT(CUBIE_BR, 2);
-            EDGE_ROT(CUBIE_DR, 2);
-            EDGE_ROT(CUBIE_FR, 2);
-            EDGE_ROT(CUBIE_R, 1);
-            Cube_cycle_4(cube, CUBIE_UFR, CUBIE_UBR, CUBIE_DBR, CUBIE_DFR);
-            Cube_cycle_4(cube, CUBIE_UR, CUBIE_BR, CUBIE_DR, CUBIE_FR);
-        break;
-    }
-
-    #undef EDGE_ROT
-    #undef CORNER_ROT
-}
+// Cube_turn() is located in mixupcube_turn.c
 
 bool Cube_is_cube_shape(const Cube* cube) {
     Cubie c;

@@ -32,6 +32,7 @@ _TURN_ORDER = [
 # Maps turn string to turn ID integer
 _TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
 
+
 #
 # Helper Functions
 #
@@ -39,7 +40,7 @@ _TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
 def _tokenize_turns(turns):
     """
     Turns a string of turns ("UM'L2FB" for example) and returns a list of
-    integer turn IDs as defined in _TURN_IDS.
+    integer turn IDs as defined in _TURN_IDS. Ignores spaces.
 
     Max munch parsing: consumes token of length 2 if it can, otherwise it
     consumes a length 1 token.
@@ -48,12 +49,15 @@ def _tokenize_turns(turns):
     ret = []
     i = 0
     while i < len(turns):
+        if turns[i].isspace():
+            i += 1
+            continue
         token = _TURN_IDS.get(turns[i:i+2], None)
         if token is None:
             token = _TURN_IDS.get(turns[i:i+1], None)
             i += 1
             if token is None:
-                raise ValueError('Unrecognized turn "{}"'.format(turns[i:i+1]))
+                raise ValueError('Unrecognized turn "{}"'.format(turns[i-1:i]))
         else:
             i += 2
         ret.append(token)
@@ -73,38 +77,30 @@ def _draw_inset_rect(p0, p1, p2, p3):
         vec = vec / numpy.linalg.norm(vec)
         return a + vec*amount
 
+    # Create 4 inset points, closer to the center by INSET_AMOUNT
     center = (p0 + p1 + p2 + p3) / 4
-    p4 = move_towards(p0, center, INSET_AMOUNT)
-    p5 = move_towards(p1, center, INSET_AMOUNT)
-    p6 = move_towards(p2, center, INSET_AMOUNT)
-    p7 = move_towards(p3, center, INSET_AMOUNT)
+    i0 = move_towards(p0, center, INSET_AMOUNT)
+    i1 = move_towards(p1, center, INSET_AMOUNT)
+    i2 = move_towards(p2, center, INSET_AMOUNT)
+    i3 = move_towards(p3, center, INSET_AMOUNT)
 
-    glVertex(*p4)
-    glVertex(*p5)
-    glVertex(*p6)
-    glVertex(*p7)
+    # Draw shrunk rectangle
+    glVertex(*i0)
+    glVertex(*i1)
+    glVertex(*i2)
+    glVertex(*i3)
 
+    # Draw 4 trapezoids bordering the rectangle
+    to_draw = (
+        p0, p1, i1, i0,
+        p1, p2, i2, i1,
+        p2, p3, i3, i2,
+        p3, p0, i0, i3,
+    )
     glColor(COLOR_VOID)
+    for p in to_draw:
+        glVertex(*p)
 
-    glVertex(*p0)
-    glVertex(*p1)
-    glVertex(*p5)
-    glVertex(*p4)
-
-    glVertex(*p1)
-    glVertex(*p2)
-    glVertex(*p6)
-    glVertex(*p5)
-
-    glVertex(*p2)
-    glVertex(*p3)
-    glVertex(*p7)
-    glVertex(*p6)
-
-    glVertex(*p3)
-    glVertex(*p0)
-    glVertex(*p4)
-    glVertex(*p7)
 
 #
 # ctypes Definitions
@@ -154,7 +150,7 @@ class MixupCube():
         return "[{}]".format(", ".join(cubie_list))
 
     #
-    # Ctypes wrappers
+    # ctypes wrappers
     #
 
     def __del__(self):
@@ -184,10 +180,10 @@ class MixupCube():
         """
         Draws cube centered at origin.
 
-        When the puzzle is a cube shape, its 3 sides will be length 1. Note
-        that when it's not in cube form, it will be a bit larger than 1x1x1 (an
-        edge cubie in a face slot will stick out by (sqrt(2)-1)/2 ). The x, y,
-        and z axes point to the R, U and F faces respectively.
+        When the puzzle is a cube shape, it will be 1x1x1 units long. Note that
+        when it's not in cube form, it will be a bit larger than 1x1x1; an edge
+        cubie in a face slot will stick out by (sqrt(2)-1)/2. The R, U, and F
+        faces point to the x, y and z axes respectively.
 
         """
         for slot, cubie in enumerate(self._cube.contents.cubies):

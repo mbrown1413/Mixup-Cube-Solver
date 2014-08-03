@@ -11,6 +11,7 @@ COLOR_F = (1, 0, 0)
 COLOR_B = (1, 0.5, 0)
 COLOR_L = (0, 1, 0)
 COLOR_R = (0, 0, 1)
+COLOR_VOID = (0.1, 0.1, 0.1)
 
 _LIBMIXUPCUBE_SO = "./libmixupcube.so"
 
@@ -209,6 +210,21 @@ class MixupCube():
             glVertex( s2,  s2, s2)
             glVertex( s2, -s2, s2)
             glVertex(-s2, -s2, s2)
+            # Opposite hidden sides
+            # These could be shown if an edge is in a face slot
+            glColor3fv(COLOR_VOID)
+            glVertex(-s2, -s2,  s2)
+            glVertex(-s2, -s2, -s2)
+            glVertex( s2, -s2, -s2)
+            glVertex( s2, -s2,  s2)
+            glVertex(s2,  s2,  s2)
+            glVertex(s2, -s2,  s2)
+            glVertex(s2, -s2, -s2)
+            glVertex(s2,  s2, -s2)
+            glVertex(-s2,  s2, -s2)
+            glVertex( s2,  s2, -s2)
+            glVertex( s2, -s2, -s2)
+            glVertex(-s2, -s2, -s2)
             glEnd()
 
         elif cubie.id < 20:  # Edges
@@ -228,7 +244,7 @@ class MixupCube():
             glVertex( l2, l2,  0)
             glEnd()
             # Side triangles
-            glColor(0, 0, 0)
+            glColor3fv(COLOR_VOID)
             glBegin(GL_TRIANGLES)
             glVertex(-l2, 0,  l2)  # Left
             glVertex(-l2, 0, -l2)

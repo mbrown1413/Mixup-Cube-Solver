@@ -137,7 +137,7 @@ static void Cube_turn_M(Cube* cube) {
 static void Cube_turn_E(Cube* cube) {
     ROT(CUBIE_FL, 1);
     ROT(CUBIE_BL, 2);
-    ROT(CUBIE_BR, 1);
+    ROT(CUBIE_BR, 3);
     ROT(CUBIE_FR, 2);
     ROT(CUBIE_F, 1);
     ROT(CUBIE_B, 1);

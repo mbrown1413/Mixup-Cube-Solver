@@ -2,6 +2,8 @@
 from math import sqrt
 import ctypes
 
+import numpy
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
@@ -58,6 +60,51 @@ def _tokenize_turns(turns):
 
     return ret
 
+def _draw_inset_rect(p0, p1, p2, p3):
+    INSET_AMOUNT = 0.02
+    p0 = numpy.array(p0)
+    p1 = numpy.array(p1)
+    p2 = numpy.array(p2)
+    p3 = numpy.array(p3)
+
+    def move_towards(a, b, amount):
+        """Move `a` towards `b` by `amount`"""
+        vec = b - a
+        vec = vec / numpy.linalg.norm(vec)
+        return a + vec*amount
+
+    center = (p0 + p1 + p2 + p3) / 4
+    p4 = move_towards(p0, center, INSET_AMOUNT)
+    p5 = move_towards(p1, center, INSET_AMOUNT)
+    p6 = move_towards(p2, center, INSET_AMOUNT)
+    p7 = move_towards(p3, center, INSET_AMOUNT)
+
+    glVertex(*p4)
+    glVertex(*p5)
+    glVertex(*p6)
+    glVertex(*p7)
+
+    glColor(COLOR_VOID)
+
+    glVertex(*p0)
+    glVertex(*p1)
+    glVertex(*p5)
+    glVertex(*p4)
+
+    glVertex(*p1)
+    glVertex(*p2)
+    glVertex(*p6)
+    glVertex(*p5)
+
+    glVertex(*p2)
+    glVertex(*p3)
+    glVertex(*p7)
+    glVertex(*p6)
+
+    glVertex(*p3)
+    glVertex(*p0)
+    glVertex(*p4)
+    glVertex(*p7)
 
 #
 # ctypes Definitions
@@ -194,22 +241,22 @@ class MixupCube():
             glBegin(GL_QUADS)
             # Top
             glColor3fv(colors[0])
-            glVertex(-s2, s2,  s2)
-            glVertex(-s2, s2, -s2)
-            glVertex( s2, s2, -s2)
-            glVertex( s2, s2,  s2)
+            _draw_inset_rect((-s2, s2,  s2),
+                             (-s2, s2, -s2),
+                             ( s2, s2, -s2),
+                             ( s2, s2,  s2))
             # Left
             glColor3fv(colors[1])
-            glVertex(-s2,  s2,  s2)
-            glVertex(-s2, -s2,  s2)
-            glVertex(-s2, -s2, -s2)
-            glVertex(-s2,  s2, -s2)
+            _draw_inset_rect((-s2,  s2,  s2),
+                             (-s2, -s2,  s2),
+                             (-s2, -s2, -s2),
+                             (-s2,  s2, -s2))
             # Front
             glColor3fv(colors[2])
-            glVertex(-s2,  s2, s2)
-            glVertex( s2,  s2, s2)
-            glVertex( s2, -s2, s2)
-            glVertex(-s2, -s2, s2)
+            _draw_inset_rect((-s2,  s2, s2),
+                             ( s2,  s2, s2),
+                             ( s2, -s2, s2),
+                             (-s2, -s2, s2))
             # Opposite hidden sides
             # These could be shown if an edge is in a face slot
             glColor3fv(COLOR_VOID)
@@ -232,16 +279,16 @@ class MixupCube():
             glBegin(GL_QUADS)
             # Front
             glColor3fv(colors[0])
-            glVertex(-l2, 0,  l2)
-            glVertex(-l2, l2,  0)
-            glVertex( l2, l2,  0)
-            glVertex( l2, 0,  l2)
+            _draw_inset_rect((-l2, 0,  l2),
+                             (-l2, l2,  0),
+                             ( l2, l2,  0),
+                             ( l2, 0,  l2))
             # Top
             glColor3fv(colors[1])
-            glVertex(-l2, l2,  0)
-            glVertex(-l2, 0, -l2)
-            glVertex( l2, 0, -l2)
-            glVertex( l2, l2,  0)
+            _draw_inset_rect((-l2, l2,  0),
+                             (-l2, 0, -l2),
+                             ( l2, 0, -l2),
+                             ( l2, l2,  0))
             glEnd()
             # Side triangles
             glColor3fv(COLOR_VOID)
@@ -257,10 +304,10 @@ class MixupCube():
         else:  # Faces
             glColor3fv(colors[0])
             glBegin(GL_QUADS)
-            glVertex( l2, 0,  l2)
-            glVertex(-l2, 0,  l2)
-            glVertex(-l2, 0, -l2)
-            glVertex( l2, 0, -l2)
+            _draw_inset_rect(( l2, 0,  l2),
+                             (-l2, 0,  l2),
+                             (-l2, 0, -l2),
+                             ( l2, 0, -l2))
             glEnd()
 
     def _cubie_slot_transform(self, cubie_slot):

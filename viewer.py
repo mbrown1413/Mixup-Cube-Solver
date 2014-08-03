@@ -62,7 +62,7 @@ class CubeViewer():
     def _init_camera(self):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        gluLookAt(4, 4, 4,
+        gluLookAt(1, 1, 1,
                   0, 0, 0,
                   0, 1, 0)
         glRotate(self._rot_x, 0, -1, 0)
@@ -89,8 +89,14 @@ class CubeViewer():
                 glutMotionFunc(None)
 
 def main():
+    import sys
+
     cube = MixupCube()
+    if len(sys.argv) > 1:
+        cube.turn(sys.argv[1])
+    print cube
     viewer = CubeViewer(cube)
+
     glutMainLoop()
 
 if __name__ == "__main__":

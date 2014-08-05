@@ -140,7 +140,7 @@ static void Cube_turn_E(Cube* cube) {
     ROT(CUBIE_BR, 3);
     ROT(CUBIE_FR, 2);
     ROT(CUBIE_F, 1);
-    ROT(CUBIE_B, 1);
+    ROT(CUBIE_B, 3);
     Cube_cycle_8(cube, CUBIE_FL, CUBIE_F, CUBIE_FR, CUBIE_R,
                        CUBIE_BR, CUBIE_B, CUBIE_BL, CUBIE_L);
 }
@@ -150,7 +150,7 @@ static void Cube_turn_S(Cube* cube) {
     ROT(CUBIE_UR, 1);
     ROT(CUBIE_DR, 3);
     ROT(CUBIE_DL, 3);
-    ROT(CUBIE_U, 2);
+    ROT(CUBIE_U, 1);
     ROT(CUBIE_L, 3);
     ROT(CUBIE_R, 1);
     ROT(CUBIE_D, 3);

@@ -1,4 +1,7 @@
 
+import sys
+if sys.version_info < (3, 2):
+    raise RuntimeError("Python version 3.2 or greater is required")
 from math import sqrt
 import ctypes
 
@@ -29,8 +32,12 @@ _TURN_ORDER = [
     "M6", "E6", "S6",
     "M'", "E'", "S'",
 ]
+
 # Maps turn string to turn ID integer
 _TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
+
+# Maps turn ID integer to turn string
+_TURN_STRINGS = {idx: turn for idx, turn in enumerate(_TURN_ORDER)}
 
 
 #
@@ -132,6 +139,10 @@ _libcube.Cube_is_cube_shape.restype = ctypes.c_bool
 _libcube.Cube_is_solved.argtypes = [_CubeStruct_p]
 _libcube.Cube_is_solved.restype = ctypes.c_bool
 
+# int* Cube_solve(const Cube* cube, int* solution_length_out);
+_libcube.Cube_solve.argtypes = [_CubeStruct_p, ctypes.POINTER(ctypes.c_int)]
+_libcube.Cube_solve.restype = ctypes.POINTER(ctypes.c_int)
+
 # void Cube_free(Cube* cube);
 _libcube.Cube_free.argtypes = [_CubeStruct_p]
 _libcube.Cube_free.restype = None
@@ -161,6 +172,13 @@ class MixupCube():
 
     def is_solved(self):
         return _libcube.Cube_is_solved(self._cube)
+
+    def solve(self):
+        length = ctypes.c_int()
+        raw_turns = _libcube.Cube_solve(self._cube, ctypes.byref(length))
+        assert(length.value >= 0 and length.value < 100)
+        turns = [_TURN_STRINGS[raw_turns[i]] for i in range(length.value)]
+        return ''.join(turns)
 
     def turn(self, turns):
         for t in _tokenize_turns(turns):

@@ -107,6 +107,8 @@ typedef struct {
     Cubie cubies[26];
 } Cube;
 
+static const int N_TURN_TYPES = 39;
+
 /**
  * This enum can be used to identify either cubie slots in the cube, or for a
  * cubie ID (since the cubie ID is the cubie's placement at the solved state).
@@ -151,6 +153,11 @@ bool Cube_is_cube_shape(const Cube* cube);
  * Is this cube solved?
  */
 bool Cube_is_solved(const Cube* cube);
+
+/**
+ * XXX: TODO
+ */
+int* Cube_solve(const Cube* cube, int* solution_length_out);
 
 /**
  * Print the cube as a list of (id, orientation).

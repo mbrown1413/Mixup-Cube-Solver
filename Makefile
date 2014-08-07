@@ -1,6 +1,6 @@
 CFLAGS+=--std=c99 -Werror -Wall -pedantic
-CFLAGS+=-g
-#CFLAGS+=-O3
+#CFLAGS+=-g
+CFLAGS+=-O3
 
 SOURCES=$(wildcard src/*.c)
 INCLUDES=$(wildcard src/*.h)

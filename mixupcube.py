@@ -168,12 +168,15 @@ class MixupCube():
         _libcube.Cube_free(self._cube)
 
     def is_cube_shape(self):
+        """Is this puzzle in a cube shape? Returns True or False accordingly."""
         return _libcube.Cube_is_cube_shape(self._cube)
 
     def is_solved(self):
+        """Is this cube solved? Returns True or False accordingly."""
         return _libcube.Cube_is_solved(self._cube)
 
     def solve(self):
+        """Returns a solution in the form of a string, eg "RU2R'"."""
         length = ctypes.c_int()
         raw_turns = _libcube.Cube_solve(self._cube, ctypes.byref(length))
         assert(length.value >= 0 and length.value < 100)
@@ -181,6 +184,7 @@ class MixupCube():
         return ''.join(turns)
 
     def turn(self, turns):
+        """Modifies the cube given a series of turns as a string, eg "RU2R'"."""
         for t in _tokenize_turns(turns):
             self._turn_once(t)
 

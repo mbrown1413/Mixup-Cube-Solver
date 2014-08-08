@@ -138,7 +138,15 @@ Cube* Cube_new_solved();
 void Cube_copy(Cube* dst, const Cube* src);
 
 /**
- * XXX: TODO
+ * Turn either a face or a slice.
+ *
+ * There are 39 possible turns, the turn argument must be from 0-38 inclusive.
+ * All possible turns are:
+ *   *  0 to  5 - U,  D,  F,  B,  L  and R.  90 degree clockwise face turns.
+ *   *  6 to 11 - U2, D2, F2, B2, L2 and R2. Same as 0-5 repeated twice.
+ *   * 12 to 17 - U', D', F', B', L' and R'. Same as 0-5 repeated thrice.
+ *   * 18 to 20 - M, E and S. Slice turns.
+ *   * 21 to 38 - Same as 18 to 20, repeated 2 to 7 times.
  */
 void Cube_turn(Cube* cube, int turn);
 
@@ -150,12 +158,18 @@ void Cube_turn(Cube* cube, int turn);
 bool Cube_is_cube_shape(const Cube* cube);
 
 /**
- * Is this cube solved?
+ * Is this cube solved? Returns true or false.
  */
 bool Cube_is_solved(const Cube* cube);
 
 /**
- * XXX: TODO
+ * Return a list of turns to solve the given cube.
+ *
+ * The integer list returned is a list of turns, as described in the
+ * documentation for Cube_turn, terminated with a -1 at the end. If
+ * solution_length_out is not NULL, it is set to the length of the solution.
+ *
+ * Don't forget to free the return value!
  */
 int* Cube_solve(const Cube* cube, int* solution_length_out);
 

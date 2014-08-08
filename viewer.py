@@ -94,8 +94,10 @@ def main():
     cube = MixupCube()
     if len(sys.argv) > 1:
         cube.turn(sys.argv[1])
-    print cube
+    print(cube)
     viewer = CubeViewer(cube)
+    #print(cube.is_solved())
+    #print(cube.solve())
 
     glutMainLoop()
 

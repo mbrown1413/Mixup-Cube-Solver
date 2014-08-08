@@ -7,3 +7,9 @@ INCLUDES=$(wildcard src/*.h)
 
 libmixupcube.so: $(SOURCES) $(INCLUDES)
 	$(CC) -I./src/ $(CFLAGS) -fPIC -Wl,-soname,$@ --shared $(SOURCES) -o $@
+
+
+clean:
+	-rm libmixupcube.so
+
+.PHONY: clean

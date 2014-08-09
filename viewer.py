@@ -3,19 +3,22 @@
 import sys
 from math import radians
 
-from mixupcube import MixupCube
+import numpy
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+
+from mixupcube import MixupCube
 
 
 class CubeViewer():
 
     def __init__(self, cube):
         self.cube = cube
-        self._rot_x = 0
-        self._rot_y = 0
+        self._cam_dist = 1.7
+        self._cam_vec = numpy.array([1, 1, 1])  # From origin to camera
+        self._cam_up = numpy.array([0, 1, 0])
         self._left_mouse_down = False
         self._last_mouse_pos = None
         self._win_width = 400
@@ -62,19 +65,22 @@ class CubeViewer():
     def _init_camera(self):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        gluLookAt(1, 1, 1,
+        self._cam_vec = self._cam_vec / numpy.linalg.norm(self._cam_vec)
+        cx, cy, cz = self._cam_vec * self._cam_dist
+        ux, uy, uz = self._cam_up
+        gluLookAt(cx, cy, cz,
                   0, 0, 0,
-                  0, 1, 0)
-        glRotate(self._rot_x, 0, -1, 0)
-        glRotate(self._rot_y, 0, 0, -1)
+                  ux, uy, uz)
 
     def _motion_callback(self, x, y):
         last_x, last_y = self._last_mouse_pos
-        self._rot_x += (last_x - x) * 0.5
-        self._rot_y += (last_y - y) * 0.5
-        self._rot_x = self._rot_x % 360
-        self._rot_y = self._rot_y % 360
         self._last_mouse_pos = (x, y)
+
+        left_vec = numpy.cross(self._cam_vec, self._cam_up)
+        self._cam_vec += left_vec * (x - last_x) * 4 / self._win_width
+        self._cam_vec += self._cam_up * (y - last_y) * 4 / self._win_height
+        self._cam_up = numpy.cross(left_vec, self._cam_vec)
+
         glutPostRedisplay()
 
     def _mouse_callback(self, button, state, x, y):

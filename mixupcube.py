@@ -39,6 +39,11 @@ _TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
 # Maps turn ID integer to turn string
 _TURN_STRINGS = {idx: turn for idx, turn in enumerate(_TURN_ORDER)}
 
+class MixupCubeException(Exception):
+    pass
+
+class CubieMismatchError(MixupCubeException):
+    pass
 
 #
 # Helper Functions
@@ -194,6 +199,37 @@ class MixupCube():
         assert isinstance(turn, int)
         assert turn >= 0 and turn < 39
         _libcube.Cube_turn(self._cube, turn)
+
+    #
+    # Editing
+    #
+
+    def rotate_cubie(self, slot_id, amount):
+        """Rotates cubie at slot 'slot_id' clockwise `amount` times."""
+        assert slot_id >= 0 and slot_id < 26
+        self._cube.contents.cubies[slot_id].orient += amount
+        if slot_id < 8:
+            modulous = 3
+        else:
+            modulous = 4
+        self._cube.contents.cubies[slot_id].orient %= modulous
+
+    def swap_cubies(self, slot_a, slot_b):
+        """Swap cubies at slots 'slot_a' and 'slot_b'.
+
+        A corner cannot be swapped with an edge or face. If this happens, a
+        CubieMismatchError is raised.
+
+        """
+        assert slot_a >= 0 and slot_a < 26
+        assert slot_b >= 0 and slot_b < 26
+        slot_a, slot_b = min(slot_a, slot_b), max(slot_a, slot_b)
+        if slot_a < 8 and slot_b >= 8:
+            raise CubieMismatchError("Cannot swap a corner with an edge or face.")
+        a = self._cube.contents.cubies[slot_a].id
+        b = self._cube.contents.cubies[slot_b].id
+        self._cube.contents.cubies[slot_a].id = b
+        self._cube.contents.cubies[slot_b].id = a
 
     #
     # Drawing

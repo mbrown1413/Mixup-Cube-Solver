@@ -9,7 +9,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-from mixupcube import MixupCube
+from mixupcube import MixupCube, CubieMismatchError
 
 
 class CubeViewer():
@@ -40,6 +40,7 @@ class CubeViewer():
         glutDisplayFunc(self._draw)
         glutReshapeFunc(self._reshape)
         glutMouseFunc(self._mouse_callback)
+        glutKeyboardFunc(self._keyboard_callback)
 
         self._init_viewport()
 
@@ -114,6 +115,27 @@ class CubeViewer():
         elif button == GLUT_RIGHT_BUTTON and state == GLUT_UP:
             self._selected = self._slot_at_pixel(x, y)
             glutPostRedisplay()
+
+        elif button == GLUT_MIDDLE_BUTTON and state == GLUT_UP:
+            to_swap = self._slot_at_pixel(x, y)
+            if self._selected is not None and to_swap is not None:
+                try:
+                    self.cube.swap_cubies(self._selected, to_swap)
+                    self._selected = to_swap
+                    glutPostRedisplay()
+                except CubieMismatchError:
+                    pass  # Tried to swap corner with an edge or face
+
+    def _keyboard_callback(self, key, x, y):
+        if key == b'r' and self._selected is not None:
+            self.cube.rotate_cubie(self._selected, 1)
+            glutPostRedisplay()
+        elif key == b'R' and self._selected is not None:
+            self.cube.rotate_cubie(self._selected, -1)
+            glutPostRedisplay()
+        elif key == b's' or key == b'S':
+            print("Solving...")
+            print(self.cube.solve())
 
     def _slot_at_pixel(self, x, y):
         """Returns the slit id at the pixel position (x, y)."""

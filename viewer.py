@@ -19,6 +19,7 @@ class CubeViewer():
         self._cam_dist = 1.7
         self._cam_vec = numpy.array([1, 1, 1])  # From origin to camera
         self._cam_up = numpy.array([0, 1, 0])
+        self._selected = None
         self._left_mouse_down = False
         self._last_mouse_pos = None
         self._win_width = 400
@@ -34,6 +35,7 @@ class CubeViewer():
         glEnable(GL_NORMALIZE)
         glEnable(GL_DEPTH_TEST)
         glDisable(GL_LIGHTING)
+        glDisable(GL_DITHER)
 
         glutDisplayFunc(self._draw)
         glutReshapeFunc(self._reshape)
@@ -57,7 +59,7 @@ class CubeViewer():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self._init_camera()
 
-        self.cube.draw()
+        self.cube.draw(selected_slot=self._selected)
 
         glFlush()
         glutSwapBuffers()
@@ -75,6 +77,8 @@ class CubeViewer():
     def _motion_callback(self, x, y):
         last_x, last_y = self._last_mouse_pos
         self._last_mouse_pos = (x, y)
+        if last_x != x or last_y != y:
+            self._left_mouse_moved = True
 
         left_vec = numpy.cross(self._cam_vec, self._cam_up)
         self._cam_vec += left_vec * (x - last_x) * 4 / self._win_width
@@ -87,12 +91,40 @@ class CubeViewer():
         if button == GLUT_LEFT_BUTTON:
             if state == GLUT_DOWN:
                 self._left_mouse_down = True
+                self._left_mouse_moved = False
                 self._last_mouse_pos = (x, y)
                 glutMotionFunc(self._motion_callback)
+
             else:
                 self._left_mouse_down = False
                 self._last_mouse_pos = None
                 glutMotionFunc(None)
+
+                if not self._left_mouse_moved:
+                    self._selected = self._slot_at_pixel(x, y)
+                    glutPostRedisplay()
+
+        elif button == GLUT_RIGHT_BUTTON and state == GLUT_UP:
+            self._selected = self._slot_at_pixel(x, y)
+            glutPostRedisplay()
+
+    def _slot_at_pixel(self, x, y):
+        """Returns the slit id at the pixel position (x, y)."""
+
+        glClearColor(1, 1, 1, 0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self._init_camera()
+
+        self.cube.draw(slot_id_map=True)
+
+        glFlush()
+        glClearColor(0, 0, 0, 0)
+
+        slot = glReadPixels(x, self._win_height - y, 1, 1, GL_RGB, GL_BYTE)[0][0][0]
+        if slot < 0 or slot > 25:
+            slot = None
+        return slot
+
 
 def main():
     import sys

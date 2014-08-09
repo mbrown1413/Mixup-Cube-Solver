@@ -71,8 +71,8 @@ def _tokenize_turns(turns):
 
     return ret
 
-def _draw_inset_rect(p0, p1, p2, p3):
-    INSET_AMOUNT = 0.02
+def _draw_inset_rect(p0, p1, p2, p3, void_color):
+    INSET_AMOUNT = 0.025
     p0 = numpy.array(p0)
     p1 = numpy.array(p1)
     p2 = numpy.array(p2)
@@ -104,7 +104,8 @@ def _draw_inset_rect(p0, p1, p2, p3):
         p2, p3, i3, i2,
         p3, p0, i0, i3,
     )
-    glColor(COLOR_VOID)
+    if void_color is not None:
+        glColor(void_color)
     for p in to_draw:
         glVertex(*p)
 
@@ -198,7 +199,7 @@ class MixupCube():
     # Drawing
     #
 
-    def draw(self):
+    def draw(self, selected_slot=None, slot_id_map=False):
         """
         Draws cube centered at origin.
 
@@ -207,22 +208,48 @@ class MixupCube():
         cubie in a face slot will stick out by (sqrt(2)-1)/2. The R, U, and F
         faces point to the x, y and z axes respectively.
 
+        If selected_slot is given, it must be the id of a slot to highlight.
+
+        If slot_id_map is True, instead of drawing colors, the red, green and
+        blue channels are set to the cubie slot drawn at that position. Use
+        this option to map a pixel position back to a slot id. Note that you'll
+        have to clear the depth buffer and clear the color buffer to 255 first.
+
         """
+        if selected_slot is not None and slot_id_map:
+            raise ValueError("selected_slot and slot_id_map cannot both be specified.")
+        if selected_slot:
+            assert selected_slot >= 0 and selected_slot < 26
+
         for slot, cubie in enumerate(self._cube.contents.cubies):
             glPushMatrix()
-            try:
-                self._cubie_slot_transform(slot)
-                self._draw_cubie(cubie)
-            finally:
-                glPopMatrix()
 
-    def _draw_cubie(self, cubie):
+            if slot_id_map:
+                glColor3b(slot, slot, slot)
+
+            selected = False
+            if selected_slot is not None and selected_slot == slot:
+                selected = True
+
+            self._cubie_slot_transform(slot)
+            self._draw_cubie(cubie, selected=selected, skip_color=slot_id_map)
+
+            glPopMatrix()
+
+    def _draw_cubie(self, cubie, selected=False, skip_color=False):
         assert cubie.id >= 0 and cubie.id < 26
         assert cubie.orient >= 0
         if cubie.id < 8:
             assert cubie.orient < 3
         else:
             assert cubie.orient < 4
+
+        if skip_color:
+            void_color = None
+        elif selected:
+            void_color = (0, 1, 1)
+        else:
+            void_color = COLOR_VOID
 
         # s - Short, l - Long
         # These distances are the key dimensions of each of the 3 cubie types.
@@ -258,26 +285,30 @@ class MixupCube():
             glRotate(120*cubie.orient, 1, -1, -1)
             glBegin(GL_QUADS)
             # Top
-            glColor3fv(colors[0])
+            if not skip_color:
+                glColor3fv(colors[0])
             _draw_inset_rect((-s2, s2,  s2),
                              (-s2, s2, -s2),
                              ( s2, s2, -s2),
-                             ( s2, s2,  s2))
+                             ( s2, s2,  s2), void_color)
             # Left
-            glColor3fv(colors[1])
+            if not skip_color:
+                glColor3fv(colors[1])
             _draw_inset_rect((-s2,  s2,  s2),
                              (-s2, -s2,  s2),
                              (-s2, -s2, -s2),
-                             (-s2,  s2, -s2))
+                             (-s2,  s2, -s2), void_color)
             # Front
-            glColor3fv(colors[2])
+            if not skip_color:
+                glColor3fv(colors[2])
             _draw_inset_rect((-s2,  s2, s2),
                              ( s2,  s2, s2),
                              ( s2, -s2, s2),
-                             (-s2, -s2, s2))
+                             (-s2, -s2, s2), void_color)
             # Opposite hidden sides
             # These could be shown if an edge is in a face slot
-            glColor3fv(COLOR_VOID)
+            if not skip_color:
+                glColor3fv(void_color)
             glVertex(-s2, -s2,  s2)
             glVertex(-s2, -s2, -s2)
             glVertex( s2, -s2, -s2)
@@ -296,20 +327,23 @@ class MixupCube():
             glRotate(90*cubie.orient, 0, -1, 0)
             glBegin(GL_QUADS)
             # Front
-            glColor3fv(colors[0])
+            if not skip_color:
+                glColor3fv(colors[0])
             _draw_inset_rect((-l2, 0,  l2),
                              (-l2, l2,  0),
                              ( l2, l2,  0),
-                             ( l2, 0,  l2))
+                             ( l2, 0,  l2), void_color)
             # Top
-            glColor3fv(colors[1])
+            if not skip_color:
+                glColor3fv(colors[1])
             _draw_inset_rect((-l2, l2,  0),
                              (-l2, 0, -l2),
                              ( l2, 0, -l2),
-                             ( l2, l2,  0))
+                             ( l2, l2,  0), void_color)
             glEnd()
             # Side triangles
-            glColor3fv(COLOR_VOID)
+            if not skip_color:
+                glColor3fv(void_color)
             glBegin(GL_TRIANGLES)
             glVertex(-l2, 0,  l2)  # Left
             glVertex(-l2, 0, -l2)
@@ -320,12 +354,13 @@ class MixupCube():
             glEnd()
 
         else:  # Faces
-            glColor3fv(colors[0])
+            if not skip_color:
+                glColor3fv(colors[0])
             glBegin(GL_QUADS)
             _draw_inset_rect(( l2, 0,  l2),
                              (-l2, 0,  l2),
                              (-l2, 0, -l2),
-                             ( l2, 0, -l2))
+                             ( l2, 0, -l2), void_color)
             glEnd()
 
     def _cubie_slot_transform(self, cubie_slot):

@@ -80,10 +80,17 @@ class CubeViewer():
         if last_x != x or last_y != y:
             self._left_mouse_moved = True
 
+        dx = x - last_x
+        dy = y - last_y
+
         left_vec = numpy.cross(self._cam_vec, self._cam_up)
-        self._cam_vec += left_vec * (x - last_x) * 4 / self._win_width
-        self._cam_vec += self._cam_up * (y - last_y) * 4 / self._win_height
+        self._cam_vec += left_vec * dx * 4 / self._win_width
+        self._cam_vec += self._cam_up * dy * 4 / self._win_height
+        self._cam_vec = self._cam_vec / numpy.linalg.norm(self._cam_vec)
+
+        left_vec = numpy.cross(self._cam_vec, self._cam_up)
         self._cam_up = numpy.cross(left_vec, self._cam_vec)
+        self._cam_up = self._cam_up / numpy.linalg.norm(self._cam_up)
 
         glutPostRedisplay()
 

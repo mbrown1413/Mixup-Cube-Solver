@@ -134,8 +134,12 @@ class CubeViewer():
             self.cube.rotate_cubie(self._selected, -1)
             glutPostRedisplay()
         elif key == b's' or key == b'S':
-            print("Solving...")
-            print(self.cube.solve())
+            print("Solving {}".format(self.cube))
+            solution = self.cube.solve()
+            if solution:
+                print(solution)
+            else:
+                print("Cube already solved")
 
     def _slot_at_pixel(self, x, y):
         """Returns the slit id at the pixel position (x, y)."""

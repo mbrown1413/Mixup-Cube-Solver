@@ -5,46 +5,43 @@
 
 #include "mixupcube.h"
 #include "stack.h"
+#include "solution_list.h"
 
 // Private Prototypes
-static int* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack);
+static SolutionList* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack, bool multiple_solutions);
 
 
-int* Cube_solve(const Cube* cube, int* solution_length_out) {
+int* Cube_solve(const Cube* cube) {
     // Depth first search implemented with iterative deepening
     Stack* stack = Stack_new(1000);
-    int* solution;
+    SolutionList* solutions;
+    int* ret;
 
     if(Cube_is_solved(cube)) {
-        solution = (int*) calloc(1, sizeof(int));
-        solution[0] = -1;
-        if(solution_length_out != NULL) {
-            *solution_length_out = 0;
-        }
+        ret = (int*) calloc(1, sizeof(int));
+        ret[0] = -2;
         Stack_free(stack);
-        return solution;
+        return ret;
     }
 
-    for(int d=1; ; d++) {
-        solution = search_at_depth(cube, d, stack);
-        if(solution != NULL) {
-            if(solution_length_out != NULL) {
-                *solution_length_out = d;
-            }
+    for(int depth=1; ; depth++) {
+        solutions = search_at_depth(cube, depth, stack, false);
+        if(SolutionList_count(solutions) > 0) {
+            ret = SolutionList_get_int_list(solutions);
+            SolutionList_free(solutions);
             Stack_free(stack);
-            return solution;
+            return ret;
         }
+        SolutionList_free(solutions);
     }
-    Stack_free(stack);
-    return NULL;
 }
 
-static int* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack) {
+static SolutionList* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack, bool multiple_solutions) {
     Cube current, tmp;
     int depth, turn;
-    int* solution;
     bool pop_successful;
     int path[max_depth];
+    SolutionList* solutions = SolutionList_new();
 
     assert(max_depth >= 0);
 
@@ -63,7 +60,10 @@ static int* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack) {
 
                     // Solution Found!
                     path[max_depth-1] = i;
-                    goto found_solution;
+                    SolutionList_add(solutions, path, max_depth);
+                    if(!multiple_solutions) {
+                        return solutions;
+                    }
 
                 }
             }
@@ -81,16 +81,9 @@ static int* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack) {
 
         pop_successful = Stack_pop(stack, &current, &turn, &depth);
         if(!pop_successful) {
-            return NULL;
+            return solutions;
         }
         path[depth-1] = turn;
 
     }
-
-found_solution:
-    solution = (int*) calloc(max_depth+1, sizeof(int));
-    memcpy((void*) solution, (void*) path, sizeof(int)*(max_depth));
-    solution[max_depth] = -1;
-    return solution;
-
 }

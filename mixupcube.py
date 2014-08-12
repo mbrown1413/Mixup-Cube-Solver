@@ -119,6 +119,8 @@ def _draw_inset_rect(p0, p1, p2, p3, void_color):
 # ctypes Definitions
 #
 
+_libc = ctypes.cdll.LoadLibrary("libc.so.6")
+
 _libcube = ctypes.cdll.LoadLibrary(_LIBMIXUPCUBE_SO)
 
 class _CubieStruct(ctypes.Structure):
@@ -145,8 +147,8 @@ _libcube.Cube_is_cube_shape.restype = ctypes.c_bool
 _libcube.Cube_is_solved.argtypes = [_CubeStruct_p]
 _libcube.Cube_is_solved.restype = ctypes.c_bool
 
-# int* Cube_solve(const Cube* cube, int* solution_length_out);
-_libcube.Cube_solve.argtypes = [_CubeStruct_p, ctypes.POINTER(ctypes.c_int)]
+# int* Cube_solve(const Cube* cube);
+_libcube.Cube_solve.argtypes = [_CubeStruct_p]
 _libcube.Cube_solve.restype = ctypes.POINTER(ctypes.c_int)
 
 # void Cube_free(Cube* cube);
@@ -182,11 +184,21 @@ class MixupCube():
         return _libcube.Cube_is_solved(self._cube)
 
     def solve(self):
-        """Returns a solution in the form of a string, eg "RU2R'"."""
-        length = ctypes.c_int()
-        raw_turns = _libcube.Cube_solve(self._cube, ctypes.byref(length))
-        assert(length.value >= 0 and length.value < 100)
-        turns = [_TURN_STRINGS[raw_turns[i]] for i in range(length.value)]
+        """Returns a solution in the form of a string, eg "RU2R'".
+
+        Note an empty string is returned when the cube is already solved.
+
+        """
+        raw_ints = _libcube.Cube_solve(self._cube)
+
+        raw_turns = []
+        i = 0
+        while raw_ints[i] >= 0:
+            raw_turns.append(raw_ints[i])
+            i += 1
+        _libc.free(raw_ints)
+
+        turns = [_TURN_STRINGS[t] for t in raw_turns]
         return ''.join(turns)
 
     def turn(self, turns):

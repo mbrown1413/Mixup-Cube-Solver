@@ -163,15 +163,15 @@ bool Cube_is_cube_shape(const Cube* cube);
 bool Cube_is_solved(const Cube* cube);
 
 /**
- * Return a list of turns to solve the given cube.
+ * Return one or more solutions to the cube.
  *
- * The integer list returned is a list of turns, as described in the
- * documentation for Cube_turn, terminated with a -1 at the end. If
- * solution_length_out is not NULL, it is set to the length of the solution.
+ * Each solution is a list of integers (see Cube_turn() for documentation on
+ * which turns the integers correspond to). Solutions are -1 delimited, with -2
+ * at the very end.
  *
- * Don't forget to free the return value!
+ * TODO: Option to return more than one solution.
  */
-int* Cube_solve(const Cube* cube, int* solution_length_out);
+int* Cube_solve(const Cube* cube);
 
 /**
  * Print the cube as a list of (id, orientation).

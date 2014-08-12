@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "mixupcube.h"
@@ -8,16 +9,30 @@
 #include "solution_list.h"
 
 // Private Prototypes
-static SolutionList* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack, bool multiple_solutions);
+static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube));
+static SolutionList* search_at_depth(
+    const Cube* to_solve,
+    int max_depth,
+    Stack* stack,
+    bool (*is_solved_func)(const Cube* cube),
+    bool multiple_solutions);
 
 
 int* Cube_solve(const Cube* cube) {
+    return solve(cube, Cube_is_solved);
+}
+
+int* Cube_solve_to_cube_shape(const Cube* cube) {
+    return solve(cube, &Cube_is_cube_shape);
+}
+
+static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube)) {
     // Depth first search implemented with iterative deepening
     Stack* stack = Stack_new(1000);
     SolutionList* solutions;
     int* ret;
 
-    if(Cube_is_solved(cube)) {
+    if(is_solved_func(cube)) {
         ret = (int*) calloc(1, sizeof(int));
         ret[0] = -2;
         Stack_free(stack);
@@ -25,7 +40,8 @@ int* Cube_solve(const Cube* cube) {
     }
 
     for(int depth=1; ; depth++) {
-        solutions = search_at_depth(cube, depth, stack, false);
+        printf("Searching Depth %d...\n", depth);
+        solutions = search_at_depth(cube, depth, stack, is_solved_func, false);
         if(SolutionList_count(solutions) > 0) {
             ret = SolutionList_get_int_list(solutions);
             SolutionList_free(solutions);
@@ -36,7 +52,13 @@ int* Cube_solve(const Cube* cube) {
     }
 }
 
-static SolutionList* search_at_depth(const Cube* to_solve, int max_depth, Stack* stack, bool multiple_solutions) {
+static SolutionList* search_at_depth(
+    const Cube* to_solve,
+    int max_depth,
+    Stack* stack,
+    bool (*is_solved_func)(const Cube* cube),
+    bool multiple_solutions)
+{
     Cube current, tmp;
     int depth, turn;
     bool pop_successful;
@@ -56,7 +78,7 @@ static SolutionList* search_at_depth(const Cube* to_solve, int max_depth, Stack*
             for(int i=0; i<N_TURN_TYPES; i++) {
                 Cube_copy(&tmp, &current);
                 Cube_turn(&tmp, i);
-                if(Cube_is_solved(&tmp)) {
+                if(is_solved_func(&tmp)) {
 
                     // Solution Found!
                     path[max_depth-1] = i;

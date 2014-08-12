@@ -115,6 +115,17 @@ def _draw_inset_rect(p0, p1, p2, p3, void_color):
         glVertex(*p)
 
 
+def _parse_raw_solution(raw_ints):
+    raw_turns = []
+    i = 0
+    while raw_ints[i] >= 0:
+        raw_turns.append(raw_ints[i])
+        i += 1
+    _libc.free(raw_ints)
+
+    turns = [_TURN_STRINGS[t] for t in raw_turns]
+    return ''.join(turns)
+
 #
 # ctypes Definitions
 #
@@ -150,6 +161,11 @@ _libcube.Cube_is_solved.restype = ctypes.c_bool
 # int* Cube_solve(const Cube* cube);
 _libcube.Cube_solve.argtypes = [_CubeStruct_p]
 _libcube.Cube_solve.restype = ctypes.POINTER(ctypes.c_int)
+
+# int* Cube_solve_to_cube_shape(const Cube* cube);
+_libcube.Cube_solve_to_cube_shape.argtypes = [_CubeStruct_p]
+_libcube.Cube_solve_to_cube_shape.restype = ctypes.POINTER(ctypes.c_int)
+
 
 # void Cube_free(Cube* cube);
 _libcube.Cube_free.argtypes = [_CubeStruct_p]
@@ -190,16 +206,15 @@ class MixupCube():
 
         """
         raw_ints = _libcube.Cube_solve(self._cube)
+        return _parse_raw_solution(raw_ints)
 
-        raw_turns = []
-        i = 0
-        while raw_ints[i] >= 0:
-            raw_turns.append(raw_ints[i])
-            i += 1
-        _libc.free(raw_ints)
-
-        turns = [_TURN_STRINGS[t] for t in raw_turns]
-        return ''.join(turns)
+    def solve_to_cube_shape(self):
+        """
+        Same as `solve`, but solves to a cube shape instead of the final
+        solution.
+        """
+        raw_ints = _libcube.Cube_solve_to_cube_shape(self._cube)
+        return _parse_raw_solution(raw_ints)
 
     def turn(self, turns):
         """Modifies the cube given a series of turns as a string, eg "RU2R'"."""

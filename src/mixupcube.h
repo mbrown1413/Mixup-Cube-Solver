@@ -174,6 +174,12 @@ bool Cube_is_solved(const Cube* cube);
 int* Cube_solve(const Cube* cube);
 
 /**
+ * Same as Cube_solve(), but gets the puzzle into a cube shape, instead of a
+ * completely solved cube.
+ */
+int* Cube_solve_to_cube_shape(const Cube* cube);
+
+/**
  * Print the cube as a list of (id, orientation).
  */
 void Cube_print(FILE* out, const Cube* cube);

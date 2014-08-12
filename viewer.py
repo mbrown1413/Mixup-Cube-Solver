@@ -140,6 +140,13 @@ class CubeViewer():
                 print(solution)
             else:
                 print("Cube already solved")
+        elif key == b'c' or key == b'C':
+            print("Solving to cube {}".format(self.cube))
+            solution = self.cube.solve_to_cube_shape()
+            if solution:
+                print(solution)
+            else:
+                print("Cube already solved to cube")
 
     def _slot_at_pixel(self, x, y):
         """Returns the slit id at the pixel position (x, y)."""

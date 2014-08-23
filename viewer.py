@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys
+import time
 from math import radians
 
 import numpy
@@ -134,19 +135,26 @@ class CubeViewer():
             self.cube.rotate_cubie(self._selected, -1)
             glutPostRedisplay()
         elif key == b's' or key == b'S':
-            print("Solving {}".format(self.cube))
-            solution = self.cube.solve()
-            if solution:
-                print(solution)
-            else:
-                print("Cube already solved")
+            self._do_solve(self.cube)
         elif key == b'c' or key == b'C':
-            print("Solving to cube {}".format(self.cube))
+            self._do_solve(self.cube, "to_cube")
+
+    def _do_solve(self, cube, solve_type=None):
+        print("Solving {}".format(self.cube))
+        start_time = time.time()
+        if solve_type is None:
+            solution = self.cube.solve()
+        elif solve_type == "to_cube":
             solution = self.cube.solve_to_cube_shape()
-            if solution:
-                print(solution)
-            else:
-                print("Cube already solved to cube")
+        else:
+            raise ValueError("Huh, this shouldn't ever happen")
+        end_time = time.time()
+        if solution:
+            print(solution)
+        else:
+            print("Cube already solved")
+        print("Solve took {}s".format(end_time - start_time))
+        print()
 
     def _slot_at_pixel(self, x, y):
         """Returns the slit id at the pixel position (x, y)."""

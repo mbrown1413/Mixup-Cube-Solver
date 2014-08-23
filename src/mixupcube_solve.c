@@ -8,6 +8,44 @@
 #include "stack.h"
 #include "solution_list.h"
 
+/**
+ * Possible next turns, given the previous turn.
+ *
+ * This is an optimization which avoids sequences of turns than are never
+ * optimal, or can't reach a solution faster than another move that this table
+ * does allow.
+ *
+ * Each integer represents the previous turn, and each bit represents the next
+ * turn (from least to most significant bit). A 1 means avoid this turn, while
+ * a 0 means it's ok. You can use it like this:
+ *
+ *    if(turn_avoid_table[previous_turn] & (1L << next_turn)) {
+ *      // Avoid the turn
+ *    } else {
+ *      // Make the turn
+ *    }
+ *
+ * When there is no last move, index 39 is used, which avoids nothing.
+ *
+ * DO NOT MODIFY THIS TABLE DIRECTLY. It is generated from
+ * "generate_turn_avoid_table.py". See that file for a full description of
+ * which turns are avoided and why.
+ *
+ */
+static const unsigned long long int turn_avoid_table[40] = {
+    0x0000001041, 0x0000002082, 0x0000004104, 0x0000008208, 0x0000010410, 0x0000020820,
+    0x0000001041, 0x0000002082, 0x0000004104, 0x0000008208, 0x0000010410, 0x0000020820,
+    0x0000001041, 0x0000002082, 0x0000004104, 0x0000008208, 0x0000010410, 0x0000020820,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x1249240000, 0x2492480000, 0x4924900000,
+    0x0000000000,
+};
+
 // Private Prototypes
 static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube));
 static SolutionList* search_at_depth(
@@ -69,6 +107,7 @@ static SolutionList* search_at_depth(
 
     current = *to_solve;
     depth = 0;
+    turn = 39;
     Stack_clear(stack);
     while(1) {
 
@@ -76,6 +115,9 @@ static SolutionList* search_at_depth(
             // Don't push cubes at the last depth to the stack, just check if
             // they're solved.
             for(int i=0; i<N_TURN_TYPES; i++) {
+                if(turn_avoid_table[turn] & (1L << i)) {
+                    continue;
+                }
                 Cube_copy(&tmp, &current);
                 Cube_turn(&tmp, i);
                 if(is_solved_func(&tmp)) {
@@ -94,6 +136,9 @@ static SolutionList* search_at_depth(
 
             // Push all possible turned cubes to the stack
             for(int i=0; i<N_TURN_TYPES; i++) {
+                if(turn_avoid_table[turn] & (1L << i)) {
+                    continue;
+                }
                 Cube_copy(&tmp, &current);
                 Cube_turn(&tmp, i);
                 Stack_push(stack, &tmp, i, depth+1);

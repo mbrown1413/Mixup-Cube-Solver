@@ -34,10 +34,10 @@ _TURN_ORDER = [
 ]
 
 # Maps turn string to turn ID integer
-_TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
+TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
 
 # Maps turn ID integer to turn string
-_TURN_STRINGS = {idx: turn for idx, turn in enumerate(_TURN_ORDER)}
+TURN_STRINGS = {idx: turn for idx, turn in enumerate(_TURN_ORDER)}
 
 class MixupCubeException(Exception):
     pass
@@ -52,7 +52,7 @@ class CubieMismatchError(MixupCubeException):
 def _tokenize_turns(turns):
     """
     Turns a string of turns ("UM'L2FB" for example) and returns a list of
-    integer turn IDs as defined in _TURN_IDS. Ignores spaces.
+    integer turn IDs as defined in TURN_IDS. Ignores spaces.
 
     Max munch parsing: consumes token of length 2 if it can, otherwise it
     consumes a length 1 token.
@@ -64,9 +64,9 @@ def _tokenize_turns(turns):
         if turns[i].isspace():
             i += 1
             continue
-        token = _TURN_IDS.get(turns[i:i+2], None)
+        token = TURN_IDS.get(turns[i:i+2], None)
         if token is None:
-            token = _TURN_IDS.get(turns[i:i+1], None)
+            token = TURN_IDS.get(turns[i:i+1], None)
             i += 1
             if token is None:
                 raise ValueError('Unrecognized turn "{}"'.format(turns[i-1:i]))
@@ -123,7 +123,7 @@ def _parse_raw_solution(raw_ints):
         i += 1
     _libc.free(raw_ints)
 
-    turns = [_TURN_STRINGS[t] for t in raw_turns]
+    turns = [TURN_STRINGS[t] for t in raw_turns]
     return ''.join(turns)
 
 #

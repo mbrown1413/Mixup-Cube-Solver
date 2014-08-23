@@ -1,26 +1,36 @@
 
-Finds the shortest solution when given a mixed up 3x3x3 Mixup cube.
+Finds the shortest solution to a scrambled 3x3x3 Mixup cube.
 
 The 3x3x3 Mixup cube is a variant of the 3x3x3 Rubik's cube twisty puzzle. It's
 a super fun puzzle to solve, so you should get one and try to solve it on your
-own! Unlike a traditional Rubik's cube, the Mikup cube allows a slice to be
+own! Unlike a traditional Rubik's cube, the Mixup cube allows a slice to be
 twisted 45 degrees, which can move edges to places normally occupied by faces,
 and vice versa.
 
+This program is conceptually based on this [optimal
+solver](https://github.com/brownan/Rubiks-Cube-Solver/) for the Rubik's cube,
+which is in turn based on the paper "Finding Optimal Solutions to Rubik's Cube
+Using Pattern Databases", by Richard E Korf of UCLA.
 
 
-Motivation
-==========
+Usage
+=====
 
-When I went looking for solutions to the Mixup cube, I didn't find anything
-satisfactory. Sure, there are solutions, but it seems like there's a faster
-way. For the original Rubik's cube, other people have put an enormous amount of
-time into designing fast, optimal algorithms using computer programs. I aim to
-do the same for the Mixup cube with this program.
+First, you'll need:
+ * Linux
+ * C compiler - gcc and clang are tested, but others should work.
+ * Make
+ * Python 3.2 or greater
+ * Python 3 OpenGL bindings
 
-Some of my inspiration comes from this [optimal
-solver](https://github.com/brownan/Rubiks-Cube-Solver/) for the Rubik's cube.
-Most of the concepts are the same here, just expanded for the Mixup cube.
+Compile the C library using Make:
+
+    $ make
+
+Right now the only user interface is "viewer.py", which displays the puzzle
+after a sequence of moves:
+
+    $ python3 viewer.py "MU'M'R2"
 
 
 Status
@@ -30,33 +40,9 @@ The program can solve the puzzle when it's not too far away from the solved
 state. There is still a lot of work to do on optimization. It takes my computer
 over 3-4 minutes to solve a cube that is 6 away from the solution.
 
-There also isn't a good user interface yet. The python interface works well,
-but the only user facing program is "viewer.py". I'm working on a user
-interface to input the cube state and solve it.
-
-
-Dependancies
-============
-
-You'll need:
- * Linux - I've only tested on Debian, but others distros should work.
- * C compiler - gcc and clang are tested, but others should work.
- * Make
- * Python 3.2 or greater - 2.6 or greater may work with minor modifications.
- * Python 3 OpenGL bindings - The Debian package for this was "python3-opengl".
-
-
-Usage
-=====
-
-Compile the library using Make:
-
-    $ make
-
-Right now the only user interface is "viewer.py", which displays the puzzle
-after a sequence of moves:
-
-    $ python3 viewer.py "MU'M'R2"
+The python interface works well. The only user facing program is "viewer.py",
+which you can use to manipulate the cube and solve a given state. The interface
+definitely needs some work to be easy to use though.
 
 
 Notation

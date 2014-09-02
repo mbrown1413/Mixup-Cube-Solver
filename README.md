@@ -59,9 +59,15 @@ letters also identify the 6 faces of the cube.
 * F - Front
 * B - Back
 
-Here are the slice moves of the Mixup cube. They are all 45 degree turns, moving pieces from edge slots to face slots and vice versa.
-* M - Middle - Move the slice between L and R faces. The top comes towards the front face. The cubie in the UF slot will now be in the F slot.
-* E - Equator - Move the slice between U and D faces. The left comes towards the front face. The cubie in the FL slot will now be in the F slot.
-* S - Standing - Move the slice between F and B faces. The top comes towards the right face. The cubie in the UR slot will now be in the R slot.
+The slice moves, M, E and S, are all 45 degree turns, moving pieces from edge
+slots to face slots and vice versa. They are best explained by picture:
 
-TODO: Pictures!
+![Slice Moves Diagram](img/slice_moves.png)
+
+Or if you prefer description:
+* M - Middle - Move the slice between L and R faces. The top comes towards the
+    front face. The cubie in the UF slot will now be in the F slot.
+* E - Equator - Move the slice between U and D faces. The left comes towards
+    the front face. The cubie in the FL slot will now be in the F slot.
+* S - Standing - Move the slice between F and B faces. The top comes towards
+    the right face. The cubie in the UR slot will now be in the R slot.

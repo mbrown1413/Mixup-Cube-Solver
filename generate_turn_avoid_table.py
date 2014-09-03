@@ -5,6 +5,8 @@ complete description of the table.
 
 Here are the turns that are currently avoided:
  * Turning the same face or slice twice (ex: LL', L2L)
+ * Consistently order turns that don't affect each other (ex: Choose L to
+   always come before R)
 
 """
 
@@ -46,6 +48,17 @@ def generate_table():
                      B_TURNS, L_TURNS, R_TURNS,
                      M_TURNS, E_TURNS, S_TURNS):
         for t1, t2 in product(turn_set, repeat=2):
+            add_avoid(table, t1, t2)
+
+    # Consistently order turns that don't affect each other
+    for p1, p2, p3 in ((U_TURNS, E_TURNS, D_TURNS),
+                       (L_TURNS, M_TURNS, R_TURNS),
+                       (F_TURNS, S_TURNS, B_TURNS)):
+        for t1, t2 in product(p1, p2):
+            add_avoid(table, t1, t2)
+        for t1, t2 in product(p1, p3):
+            add_avoid(table, t1, t2)
+        for t1, t2 in product(p2, p3):
             add_avoid(table, t1, t2)
 
     return table

@@ -1,6 +1,8 @@
 
 Finds the shortest solution to a scrambled 3x3x3 Mixup cube.
 
+![A 3x3x3 Mixup Cube](img/mixed_up.jpg)
+
 The 3x3x3 Mixup cube is a variant of the 3x3x3 Rubik's cube twisty puzzle. It's
 a super fun puzzle to solve, so you should get one and try to solve it on your
 own! Unlike a traditional Rubik's cube, the Mixup cube allows a slice to be

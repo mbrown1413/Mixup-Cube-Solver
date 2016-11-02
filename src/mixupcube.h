@@ -109,6 +109,8 @@ typedef struct {
 
 static const int N_TURN_TYPES = 39;
 
+extern const Cube solved_state;
+
 /**
  * This enum can be used to identify either cubie slots in the cube, or for a
  * cubie ID (since the cubie ID is the cubie's placement at the solved state).

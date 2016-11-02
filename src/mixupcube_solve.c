@@ -55,6 +55,8 @@ static SolutionList* search_at_depth(
     bool (*is_solved_func)(const Cube* cube),
     bool multiple_solutions);
 
+static unsigned long long int nodes_visited;
+
 
 int* Cube_solve(const Cube* cube) {
     return solve(cube, Cube_is_solved);
@@ -66,6 +68,7 @@ int* Cube_solve_to_cube_shape(const Cube* cube) {
 
 static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube)) {
     // Depth first search implemented with iterative deepening
+    nodes_visited = 0;
     Stack* stack = Stack_new(1000);
     SolutionList* solutions;
     int* ret;
@@ -80,6 +83,7 @@ static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube)) {
     for(int depth=1; ; depth++) {
         printf("Searching Depth %d...\n", depth);
         solutions = search_at_depth(cube, depth, stack, is_solved_func, false);
+        printf("%llu nodes visited\n", nodes_visited);
         if(SolutionList_count(solutions) > 0) {
             ret = SolutionList_get_int_list(solutions);
             SolutionList_free(solutions);
@@ -118,6 +122,7 @@ static SolutionList* search_at_depth(
                 if(turn_avoid_table[turn] & (1L << i)) {
                     continue;
                 }
+                nodes_visited++;
                 Cube_copy(&tmp, &current);
                 Cube_turn(&tmp, i);
                 if(is_solved_func(&tmp)) {
@@ -139,6 +144,7 @@ static SolutionList* search_at_depth(
                 if(turn_avoid_table[turn] & (1L << i)) {
                     continue;
                 }
+                nodes_visited++;
                 Cube_copy(&tmp, &current);
                 Cube_turn(&tmp, i);
                 Stack_push(stack, &tmp, i, depth+1);

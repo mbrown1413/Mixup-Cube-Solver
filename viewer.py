@@ -138,6 +138,8 @@ class CubeViewer():
             self._do_solve(self.cube)
         elif key == b'c' or key == b'C':
             self._do_solve(self.cube, "to_cube")
+        elif key == b'p' or key == b'P':
+            print(self.cube)
 
     def _do_solve(self, cube, solve_type=None):
         print("Solving {}".format(self.cube))
@@ -157,7 +159,7 @@ class CubeViewer():
         print()
 
     def _slot_at_pixel(self, x, y):
-        """Returns the slit id at the pixel position (x, y)."""
+        """Returns the slot id at the pixel position (x, y)."""
 
         glClearColor(1, 1, 1, 0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -178,12 +180,10 @@ def main():
     import sys
 
     cube = MixupCube()
-    if len(sys.argv) > 1:
+    if len(sys.argv) == 2:
         cube.turn(sys.argv[1])
     print(cube)
     viewer = CubeViewer(cube)
-    #print(cube.is_solved())
-    #print(cube.solve())
 
     glutMainLoop()
 

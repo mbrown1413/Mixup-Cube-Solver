@@ -3,6 +3,7 @@ import sys
 if sys.version_info < (3, 2):
     raise RuntimeError("Python version 3.2 or greater is required")
 from math import sqrt
+import string
 import ctypes
 
 import numpy
@@ -174,15 +175,57 @@ _libcube.Cube_free.restype = None
 
 class MixupCube():
 
-    def __init__(self):
-        #TODO: Support initializing a non-solved cube.
+    def __init__(self, cubies=None):
         self._cube = _libcube.Cube_new_solved()
 
+        if cubies:
+            assert len(cubies) == 26
+            for slot_id, (cubie_id, orient) in enumerate(cubies):
+                assert cubie_id < 26
+                assert orient < 4
+                self._cube.contents.cubies[slot_id].id = cubie_id
+                self._cube.contents.cubies[slot_id].orient = orient
+
     def __str__(self):
-        cubie_list = []
+        cubie_strs = []
         for cubie in self._cube.contents.cubies:
-            cubie_list.append("({}, {})".format(cubie.id, cubie.orient))
-        return "[{}]".format(", ".join(cubie_list))
+            cubie_strs.append("{}-{}".format(cubie.id, cubie.orient))
+        return '[' + ', '.join(cubie_strs) + ']'
+
+    @classmethod
+    def from_str(cls, s):
+        """
+        Returns a corresponding MixupCube object corresponding to the string.
+
+        You can get valid strings to input here by printing an existing
+        MixupCube object. The strings look like this:
+
+            [<id_0>-<orient_0>, <id_1>-<orient_1>, ..., <id_25>-<orient_25>]
+
+        So, for example, a solved cube might look like this:
+
+            [0-0, 1-0, 2-0, 3-0, 4-0, 5-0, 6-0, 7-0, 8-0, 9-0, 10-0, 11-0,
+            12-0, 13-0, 14-0, 15-0, 16-0, 17-0, 18-0, 19-0, 20-0, 21-0, 22-0,
+            23-0, 24-0, 25-0]
+
+        The start and end brackets are required, but whitespace is ignored.
+        """
+        # Remove all whitespace
+        whitespace_map = {ord(c):None for c in string.whitespace}
+        s = s.translate(whitespace_map)
+
+        assert s.startswith('[')
+        assert s.endswith(']')
+        s = s[1:-1]
+
+        cubies = []
+        for cubie_str in s.split(','):
+            assert cubie_str.count('-') == 1
+            cubie_id, cubie_orient = cubie_str.split('-')
+            cubies.append((int(cubie_id), int(cubie_orient)))
+        assert len(cubies) == 26
+
+        return cls(cubies)
 
     #
     # ctypes wrappers

@@ -3,6 +3,7 @@
 import sys
 import time
 from math import radians
+from collections import namedtuple
 
 import numpy
 
@@ -11,6 +12,8 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 from mixupcube import MixupCube, CubieMismatchError
+
+KeyBinding = namedtuple("KeyBinding", "keys name func args help")
 
 
 class CubeViewer():
@@ -25,6 +28,11 @@ class CubeViewer():
         self._last_mouse_pos = None
         self._win_width = 400
         self._win_height = 400
+
+        self.key_bindings = {}
+        for b in self.get_key_bindings():
+            for key in b.keys:
+                self.key_bindings[key] = b
 
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
@@ -44,6 +52,21 @@ class CubeViewer():
         glutKeyboardFunc(self._keyboard_callback)
 
         self._init_viewport()
+
+    def get_key_bindings(self):
+        return map(lambda b: KeyBinding(*b), (
+            ('r', "Rotate CW", self._do_rotate_selected_cubie, (1,),
+                "Rotate selected cubie clockwise"),
+            ('R', "Rotate CCW", self._do_rotate_selected_cubie, (-1,),
+                "Rotate selected cubie counter-clockwise"),
+            ('sS', "Solve", self._do_solve, (),
+                "Solve and print solution. This could take a while."),
+            ('cC', "Solve to Cube", self._do_solve, ("to_cube",),
+                "Find a set of moves to get the puzzle into a cube shape. "
+                "This could take a while."),
+            ('pP', "Print Cube", self._do_print_cube, (),
+                "Print a string representing the current cube."),
+        ))
 
     def _init_viewport(self):
         glMatrixMode(GL_PROJECTION)
@@ -128,20 +151,15 @@ class CubeViewer():
                     pass  # Tried to swap corner with an edge or face
 
     def _keyboard_callback(self, key, x, y):
-        if key == b'r' and self._selected is not None:
-            self.cube.rotate_cubie(self._selected, 1)
-            glutPostRedisplay()
-        elif key == b'R' and self._selected is not None:
-            self.cube.rotate_cubie(self._selected, -1)
-            glutPostRedisplay()
-        elif key == b's' or key == b'S':
-            self._do_solve(self.cube)
-        elif key == b'c' or key == b'C':
-            self._do_solve(self.cube, "to_cube")
-        elif key == b'p' or key == b'P':
-            print(self.cube)
+        binding = self.key_bindings.get(key.decode())
+        if binding:
+            binding.func(*binding.args)
 
-    def _do_solve(self, cube, solve_type=None):
+    def _do_rotate_selected_cubie(self, direction):
+        self.cube.rotate_cubie(self._selected, direction)
+        glutPostRedisplay()
+
+    def _do_solve(self, solve_type=None):
         print("Solving {}".format(self.cube))
         start_time = time.time()
         if solve_type is None:
@@ -157,6 +175,9 @@ class CubeViewer():
             print("Cube already solved")
         print("Solve took {}s".format(end_time - start_time))
         print()
+
+    def _do_print_cube(self):
+        print(self.cube)
 
     def _slot_at_pixel(self, x, y):
         """Returns the slot id at the pixel position (x, y)."""
@@ -182,8 +203,23 @@ def main():
     cube = MixupCube()
     if len(sys.argv) == 2:
         cube.turn(sys.argv[1])
-    print(cube)
+        print("Initial Cube:", cube)
+
     viewer = CubeViewer(cube)
+
+    print()
+    print("Keys:")
+    for b in viewer.get_key_bindings():
+        print("  {} - {}".format('/'.join(b.keys), b.name))
+        print("      {}".format(b.help))
+
+    print()
+    print("Mouse:")
+    print("  Click - Select Cubie")
+    print("  Drag - Rotate Camera")
+    print("  Middle Click - Swap Cubie with selected.")
+
+    print()
 
     glutMainLoop()
 

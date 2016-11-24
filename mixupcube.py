@@ -52,7 +52,7 @@ class CubieMismatchError(MixupCubeException):
 
 def _tokenize_turns(turns):
     """
-    Turns a string of turns ("UM'L2FB" for example) and returns a list of
+    Takes a string of turns ("UM'L2FB" for example) and returns a list of
     integer turn IDs as defined in TURN_IDS. Ignores spaces.
 
     Max munch parsing: consumes token of length 2 if it can, otherwise it
@@ -116,16 +116,14 @@ def _draw_inset_rect(p0, p1, p2, p3, void_color):
         glVertex(*p)
 
 
-def _parse_raw_solution(raw_ints):
+def _parse_c_ints(c_ints):
     raw_turns = []
     i = 0
-    while raw_ints[i] >= 0:
-        raw_turns.append(raw_ints[i])
+    while c_ints[i] >= 0:
+        raw_turns.append(c_ints[i])
         i += 1
-    _libc.free(raw_ints)
-
-    turns = [TURN_STRINGS[t] for t in raw_turns]
-    return ''.join(turns)
+    _libc.free(c_ints)
+    return raw_turns
 
 #
 # ctypes Definitions
@@ -192,6 +190,25 @@ class MixupCube():
             cubie_strs.append("{}-{}".format(cubie.id, cubie.orient))
         return '[' + ', '.join(cubie_strs) + ']'
 
+    __repr__ = __str__
+
+    def __eq__(self, other):
+
+        def cubie_equal(cubie_id, cubie1, cubie2):
+            if cubie_id < 20 and cubie1.orient != cubie2.orient:
+                return False
+            if cubie1.id != cubie2.id:
+                return False
+            return True
+
+        for i in range(26):
+            cubie1 = self._cube.contents.cubies[i]
+            cubie2 = other._cube.contents.cubies[i]
+            if not cubie_equal(i, cubie1, cubie2):
+                return False
+
+        return True
+
     @classmethod
     def from_str(cls, s):
         """
@@ -242,22 +259,32 @@ class MixupCube():
         """Is this cube solved? Returns True or False accordingly."""
         return _libcube.Cube_is_solved(self._cube)
 
-    def solve(self):
+    def solve(self, turn_list=False):
         """Returns a solution in the form of a string, eg "RU2R'".
 
         Note an empty string is returned when the cube is already solved.
 
         """
-        raw_ints = _libcube.Cube_solve(self._cube)
-        return _parse_raw_solution(raw_ints)
+        c_int_list = _libcube.Cube_solve(self._cube)
+        ints = _parse_c_ints(c_int_list)
+        turns = [TURN_STRINGS[t] for t in ints]
+        if turn_list:
+            return turns
+        else:
+            return ''.join(turns)
 
-    def solve_to_cube_shape(self):
+    def solve_to_cube_shape(self, turn_list=False):
         """
         Same as `solve`, but solves to a cube shape instead of the final
         solution.
         """
-        raw_ints = _libcube.Cube_solve_to_cube_shape(self._cube)
-        return _parse_raw_solution(raw_ints)
+        c_int_list = _libcube.Cube_solve_to_cube_shape(self._cube)
+        ints = _parse_c_ints(c_int_list)
+        turns = [TURN_STRINGS[t] for t in ints]
+        if turn_list:
+            return turns
+        else:
+            return ''.join(turns)
 
     def turn(self, turns):
         """Modifies the cube given a series of turns as a string, eg "RU2R'"."""

@@ -40,6 +40,33 @@ TURN_IDS = {turn: idx for idx, turn in enumerate(_TURN_ORDER)}
 # Maps turn ID integer to turn string
 TURN_STRINGS = {idx: turn for idx, turn in enumerate(_TURN_ORDER)}
 
+# How much to re-orient the cube in x,y,z axes after making a turn. This is
+# needed because the C representation always keeps the UFL cubie in the UFL
+# slot.
+TURN_ORIENT_DELTAS = {
+    TURN_IDS["U" ]: ( 0, -1,  0),
+    TURN_IDS["U'"]: ( 0,  1,  0),
+    TURN_IDS["U2"]: ( 0,  2,  0),
+    TURN_IDS["L" ]: ( 1,  0,  0),
+    TURN_IDS["L'"]: (-1,  0,  0),
+    TURN_IDS["L2"]: ( 2,  0,  0),
+    TURN_IDS["F" ]: ( 0,  0, -1),
+    TURN_IDS["F'"]: ( 0,  0,  1),
+    TURN_IDS["F2"]: ( 0,  0,  2),
+}
+
+TURN_AXIS_CORRECTIONS = {
+    "U" : "y'",
+    "U2": "y2",
+    "U'": "y",
+    "L" : "x",
+    "L2": "x2",
+    "L'": "x'",
+    "F" : "z'",
+    "F2": "z2",
+    "F'": "z",
+}
+
 class MixupCubeException(Exception):
     pass
 
@@ -65,16 +92,114 @@ def _tokenize_turns(turns):
         if turns[i].isspace():
             i += 1
             continue
-        token = TURN_IDS.get(turns[i:i+2], None)
-        if token is None:
-            token = TURN_IDS.get(turns[i:i+1], None)
-            i += 1
-            if token is None:
-                raise ValueError('Unrecognized turn "{}"'.format(turns[i-1:i]))
-        else:
-            i += 2
-        ret.append(token)
 
+        turn = None
+        for j in (3, 2, 1):
+            if turns[i:i+j] in TURN_IDS:
+                turn = turns[i:i+j]
+                i += j
+                break
+
+        if turn is None:
+            raise ValueError('Unrecognized turn "{}"'.format(turns[i-1:i]))
+
+        ret.append(turn)
+
+    return ret
+
+def _rotate_turn(axis_turn, turn):
+    """
+    Takes a turn string and a cube rotation and returns a new turn that is
+    equivilent but without the axis rotation.
+
+    Ex: _rotate_turn("y", "R") -> "B"
+        The move "y R y'" is equivilent to just "B"
+    """
+    assert len(axis_turn) <= 2
+    axis = axis_turn[0]
+    axis_n = 1 if len(axis_turn) == 1 else 3 if axis_turn[1] == "'" else int(axis_turn[1])
+
+    # Assign
+    #   t = face or slice being turned
+    #   n = number of clockwise turns of `t`
+    t = turn[0]
+    if len(turn) == 1:
+        n = 1
+    elif turn[1] == "'" and turn[0] in "MSE":
+        n = 7
+    elif turn[1] == "'":
+        n = 3
+    else:
+        n = int(turn[1])
+
+    if axis == "x":
+        for i in range(axis_n):
+            if   t == "U": t,n = "F", n
+            elif t == "F": t,n = "D", n
+            elif t == "D": t,n = "B", n
+            elif t == "B": t,n = "U", n
+            elif t == "S": t,n = "E", n
+            elif t == "E": t,n = "S", 8 - n
+            elif t == "y": t,n = "z", n
+            elif t == "z": t,n = "y", 4 - n
+            else: break
+
+    elif axis == "y":
+        for i in range(axis_n):
+            if   t == "F": t,n = "R", n
+            elif t == "R": t,n = "B", n
+            elif t == "B": t,n = "L", n
+            elif t == "L": t,n = "F", n
+            elif t == "M": t,n = "S", n
+            elif t == "S": t,n = "M", 8 - n
+            elif t == "x": t,n = "z", 4 - n
+            elif t == "z": t,n = "x", n
+            else: break
+
+    elif axis == "z":
+        for i in range(axis_n):
+            if   t == "U": t,n = "L", n
+            elif t == "L": t,n = "D", n
+            elif t == "D": t,n = "R", n
+            elif t == "R": t,n = "U", n
+            elif t == "M": t,n = "E", n
+            elif t == "E": t,n = "M", 8 - n
+            elif t == "x": t,n = "y", n
+            elif t == "y": t,n = "x", 4 - n
+            else: break
+
+    else:
+        assert False
+
+    # Convert (t, n) to turn string
+    assert n != 0
+    if n == 1:
+        n_str = ""
+    elif t in "ESM" and n == 7:
+        n_str = "'"
+    elif t not in "ESM" and n == 3:
+        n_str = "'"
+    else:
+        n_str = str(n)
+    return t + n_str
+
+def _invert_axis_turn(turn):
+    if len(turn) == 1:
+        return turn + "3"
+    assert len(turn) == 2
+    if turn[1] == "'":
+        return turn[0]
+    return turn[0] + str(4-int(turn[1]))
+
+def _eliminate_axis_turns(turns):
+    ret = []
+    for i in range(len(turns)):
+        turn = turns[i]
+        if turn[0] in "xyz":
+            for j in range(i+1, len(turns)):
+                turns[j] = _rotate_turn(turn, turns[j])
+        else:
+            ret.append(turn)
     return ret
 
 def _draw_inset_rect(p0, p1, p2, p3, void_color):
@@ -138,7 +263,7 @@ class _CubieStruct(ctypes.Structure):
                 ("orient", ctypes.c_byte)]
 
 class _CubeStruct(ctypes.Structure):
-    _fields_ = [("cubies", _CubieStruct * 26)]
+    _fields_ = [("cubies", _CubieStruct * 25)]
 _CubeStruct_p = ctypes.POINTER(_CubeStruct)
 
 # Cube* Cube_new_solved();
@@ -176,10 +301,17 @@ class MixupCube():
     def __init__(self, cubies=None):
         self._cube = _libcube.Cube_new_solved()
 
+        # A list of axis turns ("x", "y2", "z'", etc.) that put the cube from a
+        # normalized orientation (UFL cubie in the UFL slot), which the C
+        # representation assumes, to the non-normalized rotation (wherever the
+        # UFL cubie logically should be given the sequence of turns applied to
+        # this cube).
+        self._axis_turns = []
+
         if cubies:
-            assert len(cubies) == 26
+            assert len(cubies) == 25
             for slot_id, (cubie_id, orient) in enumerate(cubies):
-                assert cubie_id < 26
+                assert cubie_id < 25
                 assert orient < 4
                 self._cube.contents.cubies[slot_id].id = cubie_id
                 self._cube.contents.cubies[slot_id].orient = orient
@@ -195,13 +327,13 @@ class MixupCube():
     def __eq__(self, other):
 
         def cubie_equal(cubie_id, cubie1, cubie2):
-            if cubie_id < 20 and cubie1.orient != cubie2.orient:
+            if cubie_id <= 18 and cubie1.orient != cubie2.orient:
                 return False
             if cubie1.id != cubie2.id:
                 return False
             return True
 
-        for i in range(26):
+        for i in range(25):
             cubie1 = self._cube.contents.cubies[i]
             cubie2 = other._cube.contents.cubies[i]
             if not cubie_equal(i, cubie1, cubie2):
@@ -217,13 +349,13 @@ class MixupCube():
         You can get valid strings to input here by printing an existing
         MixupCube object. The strings look like this:
 
-            [<id_0>-<orient_0>, <id_1>-<orient_1>, ..., <id_25>-<orient_25>]
+            [<id_0>-<orient_0>, <id_1>-<orient_1>, ..., <id_24>-<orient_24>]
 
         So, for example, a solved cube might look like this:
 
             [0-0, 1-0, 2-0, 3-0, 4-0, 5-0, 6-0, 7-0, 8-0, 9-0, 10-0, 11-0,
             12-0, 13-0, 14-0, 15-0, 16-0, 17-0, 18-0, 19-0, 20-0, 21-0, 22-0,
-            23-0, 24-0, 25-0]
+            23-0, 24-0]
 
         The start and end brackets are required, but whitespace is ignored.
         """
@@ -240,7 +372,7 @@ class MixupCube():
             assert cubie_str.count('-') == 1
             cubie_id, cubie_orient = cubie_str.split('-')
             cubies.append((int(cubie_id), int(cubie_orient)))
-        assert len(cubies) == 26
+        assert len(cubies) == 25
 
         return cls(cubies)
 
@@ -259,43 +391,56 @@ class MixupCube():
         """Is this cube solved? Returns True or False accordingly."""
         return _libcube.Cube_is_solved(self._cube)
 
-    def solve(self, turn_list=False):
+    def solve(self, _return_turn_list=False):
         """Returns a solution in the form of a string, eg "RU2R'".
 
         Note an empty string is returned when the cube is already solved.
 
         """
-        c_int_list = _libcube.Cube_solve(self._cube)
-        ints = _parse_c_ints(c_int_list)
-        turns = [TURN_STRINGS[t] for t in ints]
-        if turn_list:
-            return turns
-        else:
-            return ''.join(turns)
+        return self._solve_abstract(
+            _libcube.Cube_solve,
+            _return_turn_list
+        )
 
-    def solve_to_cube_shape(self, turn_list=False):
+    def solve_to_cube_shape(self, _return_turn_list=False):
         """
         Same as `solve`, but solves to a cube shape instead of the final
         solution.
         """
-        c_int_list = _libcube.Cube_solve_to_cube_shape(self._cube)
+        return self._solve_abstract(
+            _libcube.Cube_solve_to_cube_shape,
+            _return_turn_list
+        )
+
+    def _solve_abstract(self, solve_func, _return_turn_list=False):
+        c_int_list = solve_func(self._cube)
         ints = _parse_c_ints(c_int_list)
         turns = [TURN_STRINGS[t] for t in ints]
-        if turn_list:
-            return turns
-        else:
-            return ''.join(turns)
+
+        corrected_turns = list(self._axis_turns)
+        for turn in turns:
+            corrected_turns.append(turn)
+            if turn in TURN_AXIS_CORRECTIONS:
+                corrected_turns.append(TURN_AXIS_CORRECTIONS[turn])
+
+        return _eliminate_axis_turns(corrected_turns)
 
     def turn(self, turns):
         """Modifies the cube given a series of turns as a string, eg "RU2R'"."""
-        for t in _tokenize_turns(turns):
-            self._turn_once(t)
 
-    def _turn_once(self, turn):
-        """Performs a single turn given its turn ID."""
-        assert isinstance(turn, int)
-        assert turn >= 0 and turn < 39
-        _libcube.Cube_turn(self._cube, turn)
+        for turn in _tokenize_turns(turns):
+
+            # Orient turns to correct reference frame
+            oriented_turn = turn
+            for axis_turn in self._axis_turns:
+                oriented_turn = _rotate_turn(_invert_axis_turn(axis_turn), oriented_turn)
+
+            turn_id = TURN_IDS[oriented_turn]
+            _libcube.Cube_turn(self._cube, turn_id)
+
+            axis_correction = TURN_AXIS_CORRECTIONS.get(oriented_turn, None)
+            if axis_correction is not None:
+                self._axis_turns.append(axis_correction)
 
     #
     # Editing
@@ -303,9 +448,9 @@ class MixupCube():
 
     def rotate_cubie(self, slot_id, amount):
         """Rotates cubie at slot 'slot_id' clockwise `amount` times."""
-        assert slot_id >= 0 and slot_id < 26
+        assert slot_id >= 0 and slot_id < 25
         self._cube.contents.cubies[slot_id].orient += amount
-        if slot_id < 8:
+        if slot_id < 7:
             modulous = 3
         else:
             modulous = 4
@@ -318,15 +463,20 @@ class MixupCube():
         CubieMismatchError is raised.
 
         """
-        assert slot_a >= 0 and slot_a < 26
-        assert slot_b >= 0 and slot_b < 26
+        assert slot_a >= -1 and slot_a < 25
+        assert slot_b >= -1 and slot_b < 25
+        if slot_a == slot_b: return
         slot_a, slot_b = min(slot_a, slot_b), max(slot_a, slot_b)
-        if slot_a < 8 and slot_b >= 8:
+        if slot_a < 7 and slot_b >= 7:
             raise CubieMismatchError("Cannot swap a corner with an edge or face.")
-        a = self._cube.contents.cubies[slot_a].id
-        b = self._cube.contents.cubies[slot_b].id
-        self._cube.contents.cubies[slot_a].id = b
-        self._cube.contents.cubies[slot_b].id = a
+
+        if slot_a == -1:
+            raise NotImplementedError("Currently UFL cubie cannot be swapped.")
+        else:
+            a = self._cube.contents.cubies[slot_a].id
+            b = self._cube.contents.cubies[slot_b].id
+            self._cube.contents.cubies[slot_a].id = b
+            self._cube.contents.cubies[slot_b].id = a
 
     #
     # Drawing
@@ -347,18 +497,35 @@ class MixupCube():
         blue channels are set to the cubie slot drawn at that position. Use
         this option to map a pixel position back to a slot id. Note that you'll
         have to clear the depth buffer and clear the color buffer to 255 first.
+        The UFL cubie is drawn 25, since it's ID of -1 does not fit in 0-255.
 
         """
         if selected_slot is not None and slot_id_map:
             raise ValueError("selected_slot and slot_id_map cannot both be specified.")
-        if selected_slot:
-            assert selected_slot >= 0 and selected_slot < 26
+        if selected_slot is not None:
+            assert selected_slot >= -1 and selected_slot < 25
 
-        for slot, cubie in enumerate(self._cube.contents.cubies):
+        glPushMatrix()
+
+        # Rotate according to self._axis_turns
+        for turn in self._axis_turns:
+            axis = turn[0]
+            count = 1 if len(turn) == 1 else 3 if turn[1] == "'" else int(turn[1])
+            glRotate(90*count, *{
+                "x": (1, 0, 0),
+                "y": (0, 1, 0),
+                "z": (0, 0, 1),
+            }[axis])
+
+        ulf_cubie = _CubieStruct(id=-1, orient=0)
+        for slot, cubie in enumerate([ulf_cubie] + list(self._cube.contents.cubies), -1):
             glPushMatrix()
 
             if slot_id_map:
-                glColor3b(slot, slot, slot)
+                if slot == -1:
+                    glColor3b(25, 25, 25)  # UFL slot fixed in place
+                else:
+                    glColor3b(slot, slot, slot)
 
             selected = False
             if selected_slot is not None and selected_slot == slot:
@@ -369,10 +536,12 @@ class MixupCube():
 
             glPopMatrix()
 
+        glPopMatrix()
+
     def _draw_cubie(self, cubie, selected=False, skip_color=False):
-        assert cubie.id >= 0 and cubie.id < 26
+        assert cubie.id >= -1 and cubie.id < 25
         assert cubie.orient >= 0
-        if cubie.id < 8:
+        if cubie.id < 7:
             assert cubie.orient < 3
         else:
             assert cubie.orient < 4
@@ -413,8 +582,8 @@ class MixupCube():
             (COLOR_B,), (COLOR_R,), (COLOR_D,),
         )
 
-        colors = CUBIE_COLORS[cubie.id]
-        if cubie.id < 8:  # Corners
+        colors = CUBIE_COLORS[cubie.id+1]  # +1 because ULF has cubie id -1
+        if cubie.id < 7:  # Corners
             glRotate(120*cubie.orient, 1, -1, -1)
             glBegin(GL_QUADS)
             # Top
@@ -456,7 +625,7 @@ class MixupCube():
             glVertex(-s2, -s2, -s2)
             glEnd()
 
-        elif cubie.id < 20:  # Edges
+        elif cubie.id < 19:  # Edges
             glRotate(90*cubie.orient, 0, -1, 0)
             glBegin(GL_QUADS)
             # Front
@@ -497,7 +666,7 @@ class MixupCube():
             glEnd()
 
     def _cubie_slot_transform(self, cubie_slot):
-        assert cubie_slot >= 0 and cubie_slot < 26
+        assert cubie_slot >= -1 and cubie_slot < 25
 
         # d is the distance in one axis between the center of an edge slot and
         # the center of a corner slot.
@@ -516,7 +685,7 @@ class MixupCube():
             (0, 0, -0.5), (0.5, 0, 0), ( 0, -0.5, 0),
         )
 
-        x, y, z = SLOT_COORDINATES[cubie_slot]
+        x, y, z = SLOT_COORDINATES[cubie_slot+1]  # +1 because the first cubie has id -1
         glTranslate(x, y, z)
 
         # How much (in degrees) to rotate for each cubie slot about the x, y,
@@ -535,6 +704,6 @@ class MixupCube():
             (-90, 0, 180), (0, 180, -90), (180, 0, 0),
         )
 
-        glRotate(SLOT_ROTATIONS[cubie_slot][2], 0, 0, 1)
-        glRotate(SLOT_ROTATIONS[cubie_slot][1], 0, 1, 0)
-        glRotate(SLOT_ROTATIONS[cubie_slot][0], 1, 0, 0)
+        glRotate(SLOT_ROTATIONS[cubie_slot+1][2], 0, 0, 1)
+        glRotate(SLOT_ROTATIONS[cubie_slot+1][1], 0, 1, 0)
+        glRotate(SLOT_ROTATIONS[cubie_slot+1][0], 1, 0, 0)

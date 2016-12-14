@@ -26,7 +26,7 @@ static void Cube_turn_S(Cube* cube);
 
 static void Cube_rotate_cubie(Cube* cube, enum CubieId idx, int amount) {
     Cubie* c = &cube->cubies[idx];
-    if(idx < 8) {
+    if(idx < 7) {
         c->orient = (c->orient + amount) % 3;  // Corner
     } else {
         c->orient = (c->orient + amount) % 4;  // Edge or face
@@ -66,9 +66,10 @@ static void Cube_cycle_8(Cube* cube,
 
 
 static void Cube_turn_U(Cube* cube) {
-    ROT(CUBIE_U, 1);
-    Cube_cycle_4(cube, CUBIE_UFL, CUBIE_UBL, CUBIE_UBR, CUBIE_UFR);
-    Cube_cycle_4(cube, CUBIE_UF, CUBIE_UL, CUBIE_UB, CUBIE_UR);
+    // Since UFL is fixed, U -> E2D y
+    Cube_turn_E(cube);
+    Cube_turn_E(cube);
+    Cube_turn_D(cube);
 }
 
 static void Cube_turn_D(Cube* cube) {
@@ -78,17 +79,14 @@ static void Cube_turn_D(Cube* cube) {
 }
 
 static void Cube_turn_L(Cube* cube) {
-    ROT(CUBIE_UFL, 2);
-    ROT(CUBIE_UBL, 1);
-    ROT(CUBIE_DBL, 2);
-    ROT(CUBIE_DFL, 1);
-    ROT(CUBIE_UL, 2);
-    ROT(CUBIE_BL, 2);
-    ROT(CUBIE_DL, 2);
-    ROT(CUBIE_FL, 2);
-    ROT(CUBIE_L, 1);
-    Cube_cycle_4(cube, CUBIE_UFL, CUBIE_DFL, CUBIE_DBL, CUBIE_UBL);
-    Cube_cycle_4(cube, CUBIE_UL, CUBIE_FL, CUBIE_DL, CUBIE_BL);
+    // Since UFL is fixed, L -> M6R x'
+    Cube_turn_M(cube);
+    Cube_turn_M(cube);
+    Cube_turn_M(cube);
+    Cube_turn_M(cube);
+    Cube_turn_M(cube);
+    Cube_turn_M(cube);
+    Cube_turn_R(cube);
 }
 
 static void Cube_turn_R(Cube* cube) {
@@ -106,13 +104,14 @@ static void Cube_turn_R(Cube* cube) {
 }
 
 static void Cube_turn_F(Cube* cube) {
-    ROT(CUBIE_UFL, 1);
-    ROT(CUBIE_UFR, 2);
-    ROT(CUBIE_DFR, 1);
-    ROT(CUBIE_DFL, 2);
-    ROT(CUBIE_F, 1);
-    Cube_cycle_4(cube, CUBIE_UFL, CUBIE_UFR, CUBIE_DFR, CUBIE_DFL);
-    Cube_cycle_4(cube, CUBIE_UF, CUBIE_FR, CUBIE_DF, CUBIE_FL);
+    // Since UFL is fixed, F -> S6B z
+    Cube_turn_S(cube);
+    Cube_turn_S(cube);
+    Cube_turn_S(cube);
+    Cube_turn_S(cube);
+    Cube_turn_S(cube);
+    Cube_turn_S(cube);
+    Cube_turn_B(cube);
 }
 
 static void Cube_turn_B(Cube* cube) {

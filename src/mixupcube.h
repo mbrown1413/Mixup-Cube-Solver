@@ -7,61 +7,66 @@
 /**
  * The 3x3x3 Mixup Rubik's Cube type.
  *
- * The puzzle is represented by a list of 26 cubies. A cubie is a physical
+ * The puzzle is represented by a list of 25 cubies. A cubie is a physical
  * corner (3 sides), edge (2 sides), or face (1 side) piece. There are 8
- * corners, 12 edges, and 6 faces, stored in that order. The Mixup Cube isn't
- * like a normal Rubik's cube: center faces can occupy edge piece slots and
- * vice versa. The moves allow turning any center slice by 45 degrees.
+ * corners (one is fixed in place and not stored), 12 edges, and 6 faces,
+ * stored in that order. The Mixup Cube isn't like a normal Rubik's cube:
+ * center faces can occupy edge piece slots and vice versa. The moves allow
+ * turning any center slice by 45 degrees.
  *
  * For each cubie we store an orientation and an ID.
  *
  * Cubie ID
  * ========
  *
- * The ID is based on the cubie's position at the solved state. Well, there are
- * actually 6 solved states (rotating the whole cube each of 6 ways), but we'll
- * choose one for now and let the solve function worry about that. Here is the
- * solved cube we're interested in:
+ * Each place a cubie can be is called a slot. Each slot has an ID from 0 to
+ * 24. A cubie's ID is based on the cubie's position at the solved state. Here
+ * are the IDs for each slot:
  *
- * 01 10 02
+ * 00 09 01
  *         \
- * 13 23 14 \
+ * 12 22 13 \
  *           \
- * 05 18 06   \
+ * 04 17 05   \
  *  \          \
  *   \          \
- *    \   09 20 11
+ *    \   08 19 10
  *     \          \
- *      \ 22    24 \
+ *      \ 21    23 \
  *       \          \
- *        17 25 19   \
+ *        16 24 18   \
  *         \          \
  *          \          \
- *           \   00 08 03
+ *           \   -1 07 02
  *            \
- *             \ 12 21 15
+ *             \ 11 20 14
  *              \
- *               04 16 07
+ *               03 15 06
  *
  * For each piece type, the IDs are ordered from top to bottom, front to back,
  * and clockwise. The IDs are unique between cubie types to make it easy to
  * tell when an edge is in a face slot, the ID values stored for each type are:
  *
- *  0 -  7  Corners
- *  8 - 19  Edges
- * 20 - 25  Faces
+ * -1 -  6  Corners
+ *  7 - 18  Edges
+ * 19 - 24  Faces
+ *
+ * You may have noticed that the first corner has a negative ID. This corner is
+ * not stored, but always assumed to be fixed in the upper left. Without this
+ * fixed corner there would be multiple solved states, making many operations
+ * less efficient.
  *
  * Although we don't store the colors themselves in this internal
  * representation, here are the face colors:
  *
- *  ID  Cubie  Dir   Color
- *  --  ----- -----  -----
- *  20   F0    Top    White
- *  21   F1    Front  Red
- *  22   F2    Left   Green
- *  23   F3    Back   Orange
- *  24   F4    Right  Blue
- *  25   F5    Down   Yellow
+ *  ID   Dir   Color
+ *  --  -----  -----
+ *  19   Top    White
+ *  20   Front  Red
+ *  21   Left   Green
+ *  22   Back   Orange
+ *  23   Right  Blue
+ *  24   Down   Yellow
  *
  * Cubie Orientation
  * =================
@@ -104,7 +109,7 @@ typedef struct {
 } Cubie;
 
 typedef struct {
-    Cubie cubies[26];
+    Cubie cubies[25];
 } Cube;
 
 static const int N_TURN_TYPES = 39;
@@ -119,9 +124,11 @@ extern const Cube solved_state;
  * intersection of the upper, front and left faces is identified as CUBIE_UFL.
  * The edge cubie at the intersection of the front and left faces is identified
  * as CUBIE_FL.
+ *
+ * Notice that CUBIE_UFL is -1 because it is not stored in the cubie list.
  */
 enum CubieId {
-    CUBIE_UFL, CUBIE_UBL, CUBIE_UBR, CUBIE_UFR,
+    CUBIE_UFL=-1, CUBIE_UBL, CUBIE_UBR, CUBIE_UFR,
     CUBIE_DFL, CUBIE_DBL, CUBIE_DBR, CUBIE_DFR,
     CUBIE_UF, CUBIE_UL, CUBIE_UB, CUBIE_UR,
     CUBIE_FL, CUBIE_BL, CUBIE_BR, CUBIE_FR,

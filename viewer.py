@@ -194,7 +194,11 @@ class CubeViewer():
         slot = glReadPixels(x, self._win_height - y, 1, 1, GL_RGB, GL_BYTE)[0][0][0]
         if slot < 0 or slot > 25:
             slot = None
-        return slot
+
+        if slot == 25:
+            return -1  # UFL slot
+        else:
+            return slot
 
 
 def main():

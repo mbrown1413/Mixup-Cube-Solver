@@ -1,7 +1,7 @@
 
 import unittest
 
-from mixupcube import MixupCube, CubieMismatchError
+from mixupcube import MixupCube, CubieMismatchError, _rotate_turn
 
 class TestCube(unittest.TestCase):
 
@@ -56,11 +56,11 @@ class TestCube(unittest.TestCase):
         self.assertNotCubeShaped(cube)
 
     def assertSolvedDist(self, cube, dist, msg=""):
-        solution = cube.solve(turn_list=True)
+        solution = cube.solve(_return_turn_list=True)
         self.assertEqual(len(solution), dist, msg+'Solved with: "{}"'.format(solution))
 
         cube.turn(''.join(solution))
-        self.assertSolved(cube)
+        self.assertSolved(cube, "Scrambled {} - Incorrect solution {}".format(msg, solution))
 
     def assertTurnsSolvedDist(self, turns, dist):
         cube = MixupCube()
@@ -135,12 +135,6 @@ class TestCube(unittest.TestCase):
             solved_turns.append(rot+"L  M2 R'")  # White on Front
             solved_turns.append(rot+"L' M6 R ")  # White on Back
 
-        # Each set of turns is unique
-        for i, turns1 in enumerate(solved_turns):
-            for j, turns2 in enumerate(solved_turns):
-                if i == j: continue
-                self.assertTurnsNotEqual(turns1, turns2)
-
         # All of those sets of turns result in a solved cube
         for turns in solved_turns:
             self.assertSolvedTurns(turns)
@@ -198,14 +192,44 @@ class TestCube(unittest.TestCase):
             ("E5", 1), ("S5", 1), ("M5", 1),
             ("E6", 1), ("S6", 1), ("M6", 1),
             ("E'", 1), ("S'", 1), ("M'", 1),
-            ("RU", 2),    # Solution: U'R'
+            ("RU", 2),
             ("U2D2", 1),  # Solution: E4
             ("M2R'", 1),  # Solution: L
             ("S2F", 1),   # Solution: B'
-            ("RUR", 3),   # Solution: R'U'R'
+            ("RUR", 3),
+            ("LFD", 3),
+            ("FDL", 3),
+            ("L'F'D'", 3),
+            ("F'D'L'", 3),
+            ("L'FD'", 3),
+            ("F'DL'", 3),
+            # These move the UFL piece every turn:
+            ("FRB", 3),
+            ("FRBL", 4),
+            ("FRBLU", 5),
+            ("UB'RD2", 4),
         )
         for turns, dist in tests:
             self.assertTurnsSolvedDist(turns, dist)
+
+class TestAxisTurns(unittest.TestCase):
+    """Tests internal functions `_simplify_axis_turns` and `_rotate_turn`."""
+
+    def test_rotate_turn(self):
+        tests = (
+            ("x",  "R", "R"),
+            ("x2", "R", "R"),
+            ("x3", "R", "R"),
+            ("y",  "U", "U"),
+            ("y2", "U", "U"),
+            ("y3", "U", "U"),
+            ("z",  "F", "F"),
+            ("z2", "F", "F"),
+            ("z3", "F", "F"),
+        )
+        for axis_turn, turn, result in tests:
+            self.assertEqual(_rotate_turn(axis_turn, turn), result)
+
 
 if __name__ == "__main__":
     unittest.main()

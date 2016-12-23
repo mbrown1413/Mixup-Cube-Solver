@@ -199,15 +199,21 @@ class TestCube(unittest.TestCase):
             ("RUR", 3),
             ("LFD", 3),
             ("FDL", 3),
-            ("L'F'D'", 3),
-            ("F'D'L'", 3),
-            ("L'FD'", 3),
-            ("F'DL'", 3),
-            # These move the UFL piece every turn:
+            ("L'F'D'", 3),  ("F'D'L'", 3),  ("L'FD'", 3),  ("F'DL'", 3),
+            ("ML'F'D'", 4), ("MF'D'L'", 4), ("ML'FD'", 4), ("MF'DL'", 4),
+            ("EL'F'D'", 4), ("EF'D'L'", 4), ("EL'FD'", 4), ("EF'DL'", 4),
+            ("SL'F'D'", 4), ("SF'D'L'", 4), ("SL'FD'", 4), ("SF'DL'", 4),
+            ("L'F'MD'", 4), ("F'D'ML'", 4), ("L'FMD'", 4), ("F'DML'", 4),
+            ("L'F'ED'", 4), ("F'D'EL'", 4), ("L'FED'", 4), ("F'DEL'", 4),
+            ("L'F'SD'", 4), ("F'D'SL'", 4), ("L'FSD'", 4), ("F'DSL'", 4),
+            # These move the UFL piece most turns:
             ("FRB", 3),
             ("FRBL", 4),
             ("FRBLU", 5),
             ("UB'RD2", 4),
+            ("UB'ERD2", 5),
+            ("UB'MRD2", 5),
+            ("UB'SRD2", 5),
         )
         for turns, dist in tests:
             self.assertTurnsSolvedDist(turns, dist)

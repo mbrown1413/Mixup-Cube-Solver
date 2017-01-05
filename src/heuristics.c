@@ -27,6 +27,8 @@ typedef struct {
     // value).
     uint64_t (*hash_func)(const Cube* cube);
     uint64_t size;
+    bool instack_optimization;
+    bool valid_turns_optimization;
 
     // Lookup table holding the solve distance for every value of the hash.
     // Initialize to NULL, it will be loaded later.
@@ -40,14 +42,41 @@ static bool Heuristic_save(Heuristic* h);
 static bool Heuristic_load(Heuristic* h);
 static bool Heuristic_unload(Heuristic* h);
 static uint64_t hash_corners(const Cube* cube);
+static uint64_t hash_edges_1(const Cube* cube);
+//static uint64_t hash_edges_2(const Cube* cube);
+//static uint64_t hash_edges_3(const Cube* cube);
 
 static Heuristic heuristics[] = {
     {
         "heuristics/corner.ht",
         hash_corners,
         (7*6*5*4*3*2) * (3*3*3*3*3*3),  // 7! * 3^6 = 3674160
+        true, true,
         NULL
     },
+    {
+        "heuristics/edges1.ht",
+        hash_edges_1,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false,
+        NULL
+    },
+    /*
+    {
+        "heuristics/edges2.ht",
+        hash_edges_2,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false,
+        NULL
+    },
+    {
+        "heuristics/edges3.ht",
+        hash_edges_3,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false,
+        NULL
+    }
+    */
 };
 
 
@@ -56,6 +85,7 @@ static Heuristic heuristics[] = {
 bool Heuristics_generate() {
     for(int i=0; i<N_HEURISTICS; i++) {
         Heuristic* h = &heuristics[i];
+        printf("Generating %s\n", h->filename);
         h->table = Heuristic_generate(h);
         if(h->table == NULL) {
             fprintf(stderr, "Error generating heuristic \"%s\"\n", h->filename);
@@ -115,7 +145,7 @@ static uint8_t* Heuristic_generate(Heuristic* h) {
     bool* visited = (bool*) calloc(h->size, sizeof(bool));
 
     // At each max_depth, keep track of which hashes have already been visited
-    // and at what depth.  We don't have to search further if a cube's hash has
+    // and at what depth. We don't have to search further if a cube's hash has
     // been visited at a lesser depth. This reduces the number of states
     // searched significantly.
     //
@@ -126,51 +156,59 @@ static uint8_t* Heuristic_generate(Heuristic* h) {
     //
     // This works like brownan's Rubik's Cube solver:
     //     https://github.com/brownan/Rubiks-Cube-Solver/blob/master/cornertable.c#L138
-    uint8_t* instack = (uint8_t*) calloc(h->size, sizeof(uint8_t));
+    uint8_t* instack = NULL;
+    if(h->instack_optimization) {
+        instack = (uint8_t*) calloc(h->size, sizeof(uint8_t));
+    }
 
     // Figure out which turns actually change the hash value. Only consider
     // those turns.
-    //
-    // TODO: This might make some heuristics never finish generating.
     bool valid_turns[N_TURN_TYPES];
-    for(int i=0; i<N_TURN_TYPES; i++) {
-        Cube_copy(&tmp_cube, &solved_state);
-        Cube_turn(&tmp_cube, i);
-        if(h->hash_func(&tmp_cube) == h->hash_func(&solved_state)) {
-            valid_turns[i] = false;
-        } else {
-            valid_turns[i] = true;
+    if(h->valid_turns_optimization) {
+        for(int i=0; i<N_TURN_TYPES; i++) {
+            Cube_copy(&tmp_cube, &solved_state);
+            Cube_turn(&tmp_cube, i);
+            if(h->hash_func(&tmp_cube) == h->hash_func(&solved_state)) {
+                valid_turns[i] = false;
+            } else {
+                valid_turns[i] = true;
+            }
         }
     }
 
     // Iterative deepening breadth-first search
     for(int max_depth=0; n_visited < h->size; max_depth++) {
+        printf("%d / %lu\n", n_visited, h->size);
         printf("Searching Depth %d\n", max_depth);
         Stack_push(stack, &solved_state, 0, 0);
 
-        memset(instack, 0, h->size*sizeof(uint8_t));
+        if(instack) {
+            memset(instack, 0, h->size*sizeof(uint8_t));
+        }
 
         while(Stack_pop(stack, &cube, &turn, &depth)) {
 
             hash = h->hash_func(&cube);
             if(hash >= h->size) {
                 fprintf(stderr, "Hash value too large: %lu\n", hash);
-                free(instack);
+                if(instack) { free(instack); }
                 free(table);
                 free(visited);
                 return NULL;
             }
 
-            if(instack[hash] != 0 && instack[hash] <= depth) {
-                continue;
+            if(instack) {
+                if(instack[hash] != 0 && instack[hash] <= depth) {
+                    continue;
+                }
+                instack[hash] = depth;
             }
-            instack[hash] = depth;
 
             if(depth != max_depth) {
 
                 // Push turned cubes to the stack
                 for(int i=N_TURN_TYPES-1; i>=0; i--) {
-                    if(!valid_turns[i]) {
+                    if(h->valid_turns_optimization && !valid_turns[i]) {
                         continue;
                     }
                     Cube_copy(&tmp_cube, &cube);
@@ -196,7 +234,7 @@ static uint8_t* Heuristic_generate(Heuristic* h) {
         }
     }
 
-    free(instack);
+    if(instack) { free(instack); }
     free(visited);
     return table;
 }
@@ -274,3 +312,61 @@ static uint64_t hash_corners(const Cube* cube) {
 
     return result;
 }
+
+static uint64_t hash_edges_generic(const Cube* cube, const uint8_t cubie_ids[4]) {
+    uint64_t result = 0;
+    uint64_t max = 1;
+
+    uint8_t ids[4];
+    uint8_t orients[4];
+    for(int i=0; i<4; i++) {
+        ids[i] = cube->cubies[cubie_ids[i]].id - 7;
+        orients[i] = cube->cubies[cubie_ids[i]].orient;
+    }
+
+    for(int i=0; i<4; i++) {
+        result += max*ids[i];
+        max *= 18-i;
+        for(int j=i+1; j<4; j++) {
+            if(ids[j] > ids[i]) {
+                ids[j]--;
+            }
+        }
+    }
+
+    for(int i=0; i<4; i++) {
+        result += max*orients[i];
+        max *= 4;
+    }
+
+    return result;
+}
+
+static uint64_t hash_edges_1(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_U, CUBIE_UF, CUBIE_DR, CUBIE_BL
+    };
+    return hash_edges_generic(cube, cubies);
+}
+
+/*
+static uint64_t hash_edges_2(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_,
+        CUBIE_,
+        CUBIE_,
+        CUBIE_,
+    };
+    return hash_edges_generic(cube, cubies);
+}
+
+static uint64_t hash_edges_3(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_,
+        CUBIE_,
+        CUBIE_,
+        CUBIE_,
+    };
+    return hash_edges_generic(cube, cubies);
+}
+*/

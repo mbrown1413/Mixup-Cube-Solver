@@ -25,8 +25,13 @@ def solve(cube, solve_type=None):
 
 def main():
 
-    cube_str = ''.join(sys.argv[1:])
-    cube = MixupCube.from_str(cube_str)
+    cube_str = ''.join(sys.argv[1:]).strip()
+    if cube_str.startswith('['):
+        cube = MixupCube.from_str(cube_str)
+    else:
+        cube = MixupCube()
+        cube.turn(cube_str)
+
     solve(cube)
 
 if __name__ == "__main__":

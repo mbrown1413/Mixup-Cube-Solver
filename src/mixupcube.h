@@ -71,12 +71,12 @@
  * Cubie Orientation
  * =================
  *
- * Every cubie has orientation 0 at its solved slot in the solved state
- * described above. Adding one rotates it clockwise, and subtracting one
- * rotates counter-clockwise. Corners have rotation between 0-2 inclusive and
- * edges are 0-3. For faces, the orientation is treated just like edges, except
- * we don't actually care what the value is. We mask out the face orientation
- * before checking if the cube is solved.
+ * Every cubie has orientation 0 at its solved slot in the solved state.
+ * Adding one rotates it clockwise, and subtracting one rotates
+ * counter-clockwise. Corners have rotation between 0-2 inclusive and edges are
+ * 0-3. For faces, the orientation is treated just like edges, except we don't
+ * actually care what the value is. We mask out the face orientation before
+ * checking if the cube is solved.
  *
  * What if the cubie isn't in its solved slot? For each cubie type, we'll
  * define a unique way to get every cubie back into its solved slot. Or at

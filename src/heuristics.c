@@ -47,15 +47,26 @@ static uint64_t hash_edges_1(const Cube* cube);
 //static uint64_t hash_edges_3(const Cube* cube);
 
 static Heuristic heuristics[] = {
+
+    // Corner Heuristic
+    // Complete state of all corners. This actually only hashes 6 corners,
+    // since UFL is fixed in place, and the last corner's position and
+    // orientation are determined by the others.
     {
         "heuristics/corner.ht",
+        // sha1sum: b899ecf20a87dc5366225c6e14b9477b4011bcd955cc89c2dcbb2dfffcb225cf
         hash_corners,
         (7*6*5*4*3*2) * (3*3*3*3*3*3),  // 7! * 3^6 = 3674160
         true, true,
         NULL
     },
+
+    // Edge Heuristics
+    // Each of these includes 4 edges and one face slot. Some edges are covered
+    // more than once, but each face is covered exactly once.
     {
         "heuristics/edges1.ht",
+        // sha1sum: 7b3bed30fdca80832a682a37df203a8ecbab86911ab51c19cd676804dd88e7b0
         hash_edges_1,
         (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
         false, false,

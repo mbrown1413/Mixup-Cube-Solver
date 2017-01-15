@@ -1,6 +1,8 @@
 
 import os
 import sys
+if sys.version_info < (3, 2):
+    raise RuntimeError("Python version 3.2 or greater is required")
 import ctypes
 
 _LIBMIXUPCUBE_SO = "./libmixupcube.so"

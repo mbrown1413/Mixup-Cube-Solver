@@ -36,8 +36,13 @@ static char* Heuristic_get_filename(const char* name);
 static uint8_t* Heuristic_gen_table(const Heuristic* h);
 static uint64_t hash_corners(const Cube* cube);
 static uint64_t hash_edges_1(const Cube* cube);
-//static uint64_t hash_edges_2(const Cube* cube);
-//static uint64_t hash_edges_3(const Cube* cube);
+static uint64_t hash_edges_2(const Cube* cube);
+static uint64_t hash_edges_3(const Cube* cube);
+static uint64_t hash_edges_4(const Cube* cube);
+static uint64_t hash_edges_5(const Cube* cube);
+static uint64_t hash_edges_6(const Cube* cube);
+static uint64_t hash_faces1(const Cube* cube);
+static uint64_t hash_faces2(const Cube* cube);
 
 // Stores all available heuristics
 static const Heuristic heuristics[] = {
@@ -47,7 +52,7 @@ static const Heuristic heuristics[] = {
     // since UFL is fixed in place, and the last corner's position and
     // orientation are determined by the others.
     {
-        "corner",
+        "corners",
         // sha1sum: b899ecf20a87dc5366225c6e14b9477b4011bcd955cc89c2dcbb2dfffcb225cf
         hash_corners,
         (7*6*5*4*3*2) * (3*3*3*3*3*3),  // 7! * 3^6 = 3674160
@@ -64,7 +69,6 @@ static const Heuristic heuristics[] = {
         (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
         false, false
     },
-    /*
     {
         "edges2",
         hash_edges_2,
@@ -76,8 +80,40 @@ static const Heuristic heuristics[] = {
         hash_edges_3,
         (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
         false, false
+    },
+    {
+        "edges4",
+        hash_edges_4,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false
+    },
+    {
+        "edges5",
+        hash_edges_5,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false
+    },
+    {
+        "edges6",
+        hash_edges_6,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false
+    },
+
+    // Faces
+    // Numbers are the same as edges, but only faces are included.
+    {
+        "faces1",
+        hash_faces1,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false
+    },
+    {
+        "faces2",
+        hash_faces2,
+        (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
+        false, false
     }
-    */
 };
 
 // Stores loaded heuristics
@@ -388,24 +424,51 @@ static uint64_t hash_edges_1(const Cube* cube) {
     return hash_edges_generic(cube, cubies);
 }
 
-/*
 static uint64_t hash_edges_2(const Cube* cube) {
     const uint8_t cubies[4] = {
-        CUBIE_,
-        CUBIE_,
-        CUBIE_,
-        CUBIE_,
+        CUBIE_L, CUBIE_FL, CUBIE_UR, CUBIE_DB
     };
     return hash_edges_generic(cube, cubies);
 }
 
 static uint64_t hash_edges_3(const Cube* cube) {
     const uint8_t cubies[4] = {
-        CUBIE_,
-        CUBIE_,
-        CUBIE_,
-        CUBIE_,
+        CUBIE_D, CUBIE_DF, CUBIE_UL, CUBIE_BR
     };
     return hash_edges_generic(cube, cubies);
 }
-*/
+
+static uint64_t hash_edges_4(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_R, CUBIE_FR, CUBIE_DL, CUBIE_UB
+    };
+    return hash_edges_generic(cube, cubies);
+}
+
+static uint64_t hash_edges_5(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_F, CUBIE_DF, CUBIE_FR, CUBIE_UL,
+    };
+    return hash_edges_generic(cube, cubies);
+}
+
+static uint64_t hash_edges_6(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_B, CUBIE_UB, CUBIE_BR, CUBIE_DL,
+    };
+    return hash_edges_generic(cube, cubies);
+}
+
+static uint64_t hash_faces1(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_U, CUBIE_D, CUBIE_L, CUBIE_R
+    };
+    return hash_edges_generic(cube, cubies);
+}
+
+static uint64_t hash_faces2(const Cube* cube) {
+    const uint8_t cubies[4] = {
+        CUBIE_U, CUBIE_D, CUBIE_F, CUBIE_B
+    };
+    return hash_edges_generic(cube, cubies);
+}

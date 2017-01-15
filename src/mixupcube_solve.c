@@ -12,29 +12,30 @@
 #include "heuristics.h"
 
 // Private Prototypes
-static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube), bool use_heuristics);
+static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube));
 static SolutionList* search_at_depth(
     const Cube* to_solve,
     int max_depth,
     Stack* stack,
     bool (*is_solved_func)(const Cube* cube),
-    bool multiple_solutions,
-    bool use_heuristics);
+    bool multiple_solutions);
 
 static unsigned long long int nodes_visited;
 
 
 int* Cube_solve(const Cube* cube) {
-    Heuristics_load();
-    return solve(cube, Cube_is_solved, true);
+    Heuristics_load_all();
+    int* solution = solve(cube, Cube_is_solved);
+    Heuristics_unload_all();
+    return solution;
 }
 
 int* Cube_solve_to_cube_shape(const Cube* cube) {
     //TODO: Heuristics only supported for regular solving.
-    return solve(cube, &Cube_is_cube_shape, false);
+    return solve(cube, &Cube_is_cube_shape);
 }
 
-static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube), bool use_heuristics) {
+static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube)) {
     // Depth first search implemented with iterative deepening
     nodes_visited = 0;
     Stack* stack = Stack_new(1000);
@@ -50,7 +51,7 @@ static int* solve(const Cube* cube, bool (*is_solved_func)(const Cube* cube), bo
 
     for(int depth=1; ; depth++) {
         printf("Searching Depth %d...\n", depth);
-        solutions = search_at_depth(cube, depth, stack, is_solved_func, false, use_heuristics);
+        solutions = search_at_depth(cube, depth, stack, is_solved_func, false);
         printf("%llu nodes visited\n", nodes_visited);
         if(SolutionList_count(solutions) > 0) {
             ret = SolutionList_get_int_list(solutions);
@@ -67,8 +68,7 @@ static SolutionList* search_at_depth(
     int max_depth,
     Stack* stack,
     bool (*is_solved_func)(const Cube* cube),
-    bool multiple_solutions,
-    bool use_heuristics)
+    bool multiple_solutions)
 {
     Cube current, tmp;
     int depth, turn;
@@ -117,8 +117,7 @@ static SolutionList* search_at_depth(
                 Cube_copy(&tmp, &current);
                 Cube_turn(&tmp, i);
 
-                if(use_heuristics &&
-                   Heuristics_get_dist(&tmp) + depth > max_depth+1) {
+                if(Heuristics_get_dist(&tmp) + depth > max_depth+1) {
                     continue;
                 } else {
                     Stack_push(stack, &tmp, i, depth+1);

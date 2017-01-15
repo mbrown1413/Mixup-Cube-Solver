@@ -7,13 +7,18 @@ _LIBMIXUPCUBE_SO = "./libmixupcube.so"
 
 _libcube = ctypes.cdll.LoadLibrary(_LIBMIXUPCUBE_SO)
 
-# bool Heuristics_generate();
-_libcube.Heuristics_generate.argtypes = []
-_libcube.Heuristics_generate.restype = ctypes.c_bool
+# bool Heuristic_generate(const char* name);
+_libcube.Heuristic_generate.argtypes = [ctypes.POINTER(ctypes.c_char)]
+_libcube.Heuristic_generate.restype = ctypes.c_bool
 
 HEURISTICS_DIR = "heuristics/"
 
 def main():
+
+    if len(sys.argv) < 2:
+        print("Usage: {} <heuristic_name> [<heuristic_name [...]]".format(sys.argv[0]))
+        return -1
+    names = sys.argv[1:]
 
     # This makes sure the C code saves heuristics in the correct directory.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -25,9 +30,8 @@ def main():
             return -1
         os.mkdir(HEURISTICS_DIR)
 
-    ret = _libcube.Heuristics_generate()
-    if not ret:
-        return -1
+    for name in names:
+        _libcube.Heuristic_generate(bytes(name, "utf-8"))
 
     return 0
 

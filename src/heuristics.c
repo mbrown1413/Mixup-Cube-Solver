@@ -1,10 +1,3 @@
-/**
- * Heuristics allow a solution search to prune nodes that can never reach a
- * solution in the current depth being searched at. It works by looking at a
- * subset of the cube to see how many turns it would take to solve that subset.
- * These heuristics are expensive to compute, so naturally they are precomputed
- * and stored in a table.
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,8 +11,10 @@
 
 #define N_HEURISTICS (sizeof(heuristics) / sizeof(heuristics[0]))
 
+const char FILENAME_FORMAT[] = "heuristics/%s.ht";
+
 typedef struct {
-    const char* filename;
+    const char* name;
 
     // Hash values must be in the range 0 to size-1. The hash function must
     // have zero collisions and cover the entire range without any holes (or
@@ -27,113 +22,176 @@ typedef struct {
     // value).
     uint64_t (*hash_func)(const Cube* cube);
     uint64_t size;
+
+    // Optimizations should only be enabled after it has been shown they do not
+    // affect the resulting table at all.
     bool instack_optimization;
     bool valid_turns_optimization;
-
-    // Lookup table holding the solve distance for every value of the hash.
-    // Initialize to NULL, it will be loaded later.
-    uint8_t* table;
 
 } Heuristic;
 
 // Private Prototypes
-static uint8_t* Heuristic_generate(Heuristic* h);
-static bool Heuristic_save(Heuristic* h);
-static bool Heuristic_load(Heuristic* h);
-static bool Heuristic_unload(Heuristic* h);
+static const Heuristic* Heuristic_get_by_name(const char* name);
+static char* Heuristic_get_filename(const char* name);
+static uint8_t* Heuristic_gen_table(const Heuristic* h);
 static uint64_t hash_corners(const Cube* cube);
 static uint64_t hash_edges_1(const Cube* cube);
 //static uint64_t hash_edges_2(const Cube* cube);
 //static uint64_t hash_edges_3(const Cube* cube);
 
-static Heuristic heuristics[] = {
+// Stores all available heuristics
+static const Heuristic heuristics[] = {
 
     // Corner Heuristic
     // Complete state of all corners. This actually only hashes 6 corners,
     // since UFL is fixed in place, and the last corner's position and
     // orientation are determined by the others.
     {
-        "heuristics/corner.ht",
+        "corner",
         // sha1sum: b899ecf20a87dc5366225c6e14b9477b4011bcd955cc89c2dcbb2dfffcb225cf
         hash_corners,
         (7*6*5*4*3*2) * (3*3*3*3*3*3),  // 7! * 3^6 = 3674160
-        true, true,
-        NULL
+        true, true
     },
 
     // Edge Heuristics
     // Each of these includes 4 edges and one face slot. Some edges are covered
     // more than once, but each face is covered exactly once.
     {
-        "heuristics/edges1.ht",
+        "edges1",
         // sha1sum: 7b3bed30fdca80832a682a37df203a8ecbab86911ab51c19cd676804dd88e7b0
         hash_edges_1,
         (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
-        false, false,
-        NULL
+        false, false
     },
     /*
     {
-        "heuristics/edges2.ht",
+        "edges2",
         hash_edges_2,
         (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
-        false, false,
-        NULL
+        false, false
     },
     {
-        "heuristics/edges3.ht",
+        "edges3",
         hash_edges_3,
         (18*17*16*15) * 4*4*4*4,  // 18! / 14! * 4^4 = 18800640
-        false, false,
-        NULL
+        false, false
     }
     */
 };
 
+// Stores loaded heuristics
+static struct {
+    uint64_t (*hash_func)(const Cube* cube);
+    uint64_t size;
+    uint8_t* table;
+} active[N_HEURISTICS];
+static int n_active;
+
 
 /***** Public Functions *****/
 
-bool Heuristics_generate() {
-    for(int i=0; i<N_HEURISTICS; i++) {
-        Heuristic* h = &heuristics[i];
-        printf("Generating %s\n", h->filename);
-        h->table = Heuristic_generate(h);
-        if(h->table == NULL) {
-            fprintf(stderr, "Error generating heuristic \"%s\"\n", h->filename);
-            return false;
-        }
-
-        Heuristic_save(h);
-        Heuristic_unload(h);
-
-        free(h->table);
-        h->table = NULL;
+bool Heuristic_generate(const char* name) {
+    const Heuristic* h = Heuristic_get_by_name(name);
+    if(h == NULL) {
+        fprintf(stderr, "Error: No heuristic by name \"%s\"\n", name);
+        return false;
     }
+
+    // Generate
+    char* filename = Heuristic_get_filename(name);
+    printf("Generating %s\n", filename);
+    uint8_t* table = Heuristic_gen_table(h);
+    if(table == NULL) {
+        free(filename);
+        return false;
+    }
+
+    // Save to file
+    FILE* fp = fopen(filename, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "Error: Could not open heuristic file \"%s\" for writing.\n",
+                filename);
+        free(filename);
+        free(table);
+        return false;
+    }
+    if(fwrite(table, sizeof(uint8_t)*h->size, 1, fp) != 1) {
+        fprintf(stderr, "Error: Write to heuristic file \"%s\" failed.\n",
+                filename);
+        fclose(fp);
+        free(filename);
+        free(table);
+        return false;
+    }
+    fclose(fp);
+
+    free(filename);
+    free(table);
     return true;
 }
 
-bool Heuristics_load() {
-    bool load_successful;
-    for(int i=0; i<N_HEURISTICS; i++) {
-        Heuristic* h = &heuristics[i];
-
-        load_successful = Heuristic_load(h);
-        if(!load_successful) {
-            fprintf(stderr, "Could not load table from file \"%s\"\n",
-                    h->filename);
-            return false;
-        }
-
+bool Heuristic_load(const char* name) {
+    const Heuristic* h = Heuristic_get_by_name(name);
+    if(h == NULL) {
+        return false;
     }
+    char* filename = Heuristic_get_filename(name);
+
+    FILE* fp = fopen(filename, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Heuristic file not found: \"%s\"\n", filename);
+        free(filename);
+        static bool hinted = false;
+        if(!hinted) {
+            printf("Hint: See README for how to obtain heuristics tables,\n");
+            printf("      solving may be very slow without them!\n");
+            hinted = true;
+        }
+        return false;
+    }
+    uint8_t* table = (uint8_t*) malloc(sizeof(uint8_t)*h->size);
+    if (fread(table, sizeof(uint8_t)*h->size, 1, fp) != 1) {
+        fprintf(stderr, "Error: Read from heuristic file \"%s\" failed.\n",
+                filename);
+        free(filename);
+        fclose(fp);
+        return false;
+    }
+    free(filename);
+    fclose(fp);
+
+    // Save into `active`
+    active[n_active].hash_func = h->hash_func;
+    active[n_active].size = h->size;
+    active[n_active].table = table;
+    n_active++;
+
     return true;
 }
+
+void Heuristics_load_all() {
+    for(int i=0; i<N_HEURISTICS; i++) {
+        Heuristic_load(heuristics[i].name);
+    }
+}
+
+void Heuristics_unload_all() {
+    for(int i=0; i<n_active; i++) {
+        active[i].hash_func = NULL;
+        active[i].size = 0;
+        free(active[i].table);
+        active[i].table = NULL;
+    }
+    n_active = 0;
+}
+
 
 uint8_t Heuristics_get_dist(const Cube* cube) {
     uint8_t dist, max_dist = 0;
-    for(int i=0; i<N_HEURISTICS; i++) {
-        Heuristic* h = &heuristics[i];
+    for(int i=0; i<n_active; i++) {
 
-        dist = h->table[h->hash_func(cube)];
+        dist = active[i].table[active[i].hash_func(cube)];
         if(dist > max_dist) {
             max_dist = dist;
         }
@@ -145,7 +203,24 @@ uint8_t Heuristics_get_dist(const Cube* cube) {
 
 /***** Private Functions *****/
 
-static uint8_t* Heuristic_generate(Heuristic* h) {
+static const Heuristic* Heuristic_get_by_name(const char* name) {
+    for(int i=0; i<N_HEURISTICS; i++) {
+        if(strcmp(name, heuristics[i].name) == 0) {
+            return &heuristics[i];
+            break;
+        }
+    }
+    return NULL;
+}
+
+static char* Heuristic_get_filename(const char* name) {
+    int length = strlen(name)+strlen(FILENAME_FORMAT);
+    char* filename = malloc(sizeof(char)*length);
+    snprintf(filename, length, FILENAME_FORMAT, name);
+    return filename;
+}
+
+static uint8_t* Heuristic_gen_table(const Heuristic* h) {
     Cube cube, tmp_cube;
     int depth, turn, n_visited=0;
     uint64_t hash;
@@ -159,11 +234,6 @@ static uint8_t* Heuristic_generate(Heuristic* h) {
     // and at what depth. We don't have to search further if a cube's hash has
     // been visited at a lesser depth. This reduces the number of states
     // searched significantly.
-    //
-    //TODO: This might not hold for all heuristic hashes. For example, ones
-    //      that don't hash all corners or all edges. In this case, it might be
-    //      nessesary to make a turn that does not effect the hash to get to
-    //      some hash values.
     //
     // This works like brownan's Rubik's Cube solver:
     //     https://github.com/brownan/Rubiks-Cube-Solver/blob/master/cornertable.c#L138
@@ -201,7 +271,7 @@ static uint8_t* Heuristic_generate(Heuristic* h) {
 
             hash = h->hash_func(&cube);
             if(hash >= h->size) {
-                fprintf(stderr, "Hash value too large: %lu\n", hash);
+                fprintf(stderr, "Error: Hash value too large: %lu\n", hash);
                 if(instack) { free(instack); }
                 free(table);
                 free(visited);
@@ -248,48 +318,6 @@ static uint8_t* Heuristic_generate(Heuristic* h) {
     if(instack) { free(instack); }
     free(visited);
     return table;
-}
-
-static bool Heuristic_save(Heuristic* h) {
-    FILE* fp = fopen(h->filename, "w");
-    if (fp == NULL) {
-        fprintf(stderr, "Could not open heuristic file \"%s\" for writing.\n",
-                h->filename);
-        return false;
-    }
-    if(fwrite(h->table, sizeof(uint8_t)*h->size, 1, fp) != 1) {
-        fprintf(stderr, "Write to heuristic file \"%s\" failed.\n",
-                h->filename);
-        fclose(fp);
-        return false;
-    }
-    fclose(fp);
-    return true;
-}
-
-static bool Heuristic_load(Heuristic* h) {
-    if(h->table != NULL) { return true; }
-    FILE* fp = fopen(h->filename, "r");
-    if (fp == NULL) {
-        fprintf(stderr, "Could not open heuristic file \"%s\" for reading.\n",
-                h->filename);
-        return false;
-    }
-    h->table = (uint8_t*) malloc(sizeof(uint8_t)*h->size);
-    if (fread(h->table, sizeof(uint8_t)*h->size, 1, fp) != 1) {
-        fprintf(stderr, "Read from heuristic file \"%s\" failed.\n",
-                h->filename);
-        fclose(fp);
-        return false;
-    }
-    fclose(fp);
-    return true;
-}
-
-static bool Heuristic_unload(Heuristic* h) {
-    free(h->table);
-    h->table = NULL;
-    return true;
 }
 
 
